@@ -1,6 +1,8 @@
 
 import pygame
 
+from constants import *
+
 # from tile import Tile
 # from tile_path import TilePath
 
@@ -27,4 +29,12 @@ class TileIntersection:
         self.neighbour_tiles.append(neighbour_tile)
 
     def render(self, x0: int, y0: int, screen: pygame.Surface):
-        pass  # TODO
+        x, y = self.position(x0, y0)
+        pygame.draw.circle(screen, pygame.Color("red"), (x, y), 10)
+
+    def position(self, x0, y0):
+        x = x0 + self.x * (TILE_WIDTH/2)
+        a = TILE_HEIGHT - 38
+        b = 38
+        y = y0 + a * (self.y // 2) + b * (self.y % 2)
+        return x, y

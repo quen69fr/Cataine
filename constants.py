@@ -1,3 +1,6 @@
+TILE_WIDTH = 132
+TILE_HEIGHT = 153
+TILE_HAT_HEIGHT = 38
 
 LIST_TILES_COORDS = [(2, 0), (4, 0), (6, 0),
                      (1, 1), (3, 1), (5, 1), (7, 1),

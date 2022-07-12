@@ -1,21 +1,23 @@
+from __future__ import annotations
 
 import pygame
 
 from constants import *
+from resource import Resource
 from tile import Tile
 from tile_path import TilePath
 from tile_intersection import TileIntersection
 
 
 class Board:
-    def __init__(self, list_tiles_resources: list[int], list_tiles_dice_numbers: list[int]):
+    def __init__(self, list_tiles_resources: list[Resource], list_tiles_dice_numbers: list[int]):
         self.tiles = []
         self.paths = []
         self.intersections = []
 
         self.create_bord(list_tiles_resources, list_tiles_dice_numbers)
 
-    def create_bord(self, list_tiles_resources: list[int], list_tiles_dice_numbers: list[int]):
+    def create_bord(self, list_tiles_resources: list[Resource], list_tiles_dice_numbers: list[int]):
         def find_intersection(x, y):
             for intersection in self.intersections:
                 if (intersection.x, intersection.y) == (x, y):

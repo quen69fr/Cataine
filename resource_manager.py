@@ -1,6 +1,9 @@
 from __future__ import annotations
-import pygame
+
 from resource import Resource
+
+import pygame
+
 
 class ResourceManager:
 
@@ -14,3 +17,5 @@ class ResourceManager:
         ResourceManager.TILES[Resource.HAY] = pygame.image.load("images/TuileFoin.png")
         ResourceManager.TILES[Resource.CLAY] = pygame.image.load("images/TuileArgile.png")
         ResourceManager.TILES[Resource.WOOD] = pygame.image.load("images/TuileBois.png")
+
+

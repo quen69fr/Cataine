@@ -1,3 +1,4 @@
+from __future__ import annotations
 
 import pygame
 
@@ -11,4 +12,7 @@ class TilePath:
         self.port = None  # TODO
 
     def render(self, x0: int, y0: int, screen: pygame.Surface):
-        pass  # TODO
+        start = self.intersections[0].position(x0, y0)
+        end = self.intersections[1].position(x0, y0)
+        pygame.draw.line(screen, pygame.Color("blue"), start, end, 1)
+        print(start, end)
