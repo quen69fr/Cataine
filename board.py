@@ -8,12 +8,14 @@ from tile_intersection import TileIntersection
 
 
 class Board:
-    def __init__(self):
+    def __init__(self, list_tiles_resources: list[int], list_tiles_dice_numbers: list[int]):
         self.tiles = []
         self.paths = []
         self.intersections = []
 
-    def create_bord(self, list_tiles_resources: list[int], list_tiles_dice_number):
+        self.create_bord(list_tiles_resources, list_tiles_dice_numbers)
+
+    def create_bord(self, list_tiles_resources: list[int], list_tiles_dice_numbers: list[int]):
         def find_intersection(x, y):
             for intersection in self.intersections:
                 if (intersection.x, intersection.y) == (x, y):
@@ -26,20 +28,18 @@ class Board:
             inter2.add_neighbour_path(path)
             return path
 
-        n = len(LIST_TILES_INTERSECTIONS_COORDS)
-        for (i, j), res, num in zip(LIST_TILES_COORDS, list_tiles_resources, list_tiles_dice_number):
+        for (i, j), res, num in zip(LIST_TILES_COORDS, list_tiles_resources, list_tiles_dice_numbers):
             tile = Tile(res, i, j, num)
             self.tiles.append(tile)
             first_inter = None
             first_inter_exists = True
             previous_inter = None
             previous_inter_exists = False
-            for d in range(n):
-                di, dj = LIST_TILES_INTERSECTIONS_COORDS[d]
+            for di, dj in LIST_TILES_INTERSECTIONS_COORDS:
                 inter = find_intersection(i + di, j + dj)
-                inter_exists = inter is None
+                inter_exists = inter is not None
                 if not inter_exists:
-                    inter = TileIntersection()
+                    inter = TileIntersection(i + di, j + dj)
                     self.intersections.append(inter)
                     if first_inter is None:
                         first_inter_exists = False
