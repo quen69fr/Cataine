@@ -40,4 +40,5 @@ class TileIntersection:
         a = TILE_HEIGHT - 38
         b = 38
         y = y0 + a * (self.y // 2) + b * (self.y % 2)
+        # y = y0 + 50 * self.y
         return x, y

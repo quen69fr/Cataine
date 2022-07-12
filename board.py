@@ -39,11 +39,11 @@ class Board:
             previous_inter = None
             previous_inter_exists = False
             for di, dj in LIST_TILES_INTERSECTIONS_COORDS:
+                assert i + di >= 0
+                assert j + dj >= 0
                 inter = find_intersection(i + di, j + dj)
                 inter_exists = inter is not None
                 if not inter_exists:
-                    assert i + di >= 0
-                    assert j + dj >= 0
                     inter = TileIntersection(i + di, j + dj)
                     self.intersections.append(inter)
                     if first_inter is None:

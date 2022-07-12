@@ -25,4 +25,4 @@ class Tile:
         self.intersections.append(intersection)
 
     def render(self, x0: int, y0: int, screen: pygame.Surface):
-        screen.blit(ResourceManager.TILES[self.resource], (x0 + self.x * 132/2, y0 + self.y * (153 - 38)))
+        screen.blit(ResourceManager.TILES[self.resource], (x0 + self.x * 132/2, y0 + self.y * (153 - 38)/2))
