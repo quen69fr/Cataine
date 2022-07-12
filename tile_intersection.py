@@ -28,9 +28,12 @@ class TileIntersection:
     def add_neighbour_tile(self, neighbour_tile):
         self.neighbour_tiles.append(neighbour_tile)
 
-    def render(self, x0: int, y0: int, screen: pygame.Surface):
+    def render(self, x0: int, y0: int, screen: pygame.Surface, i):
         x, y = self.position(x0, y0)
-        pygame.draw.circle(screen, pygame.Color("red"), (x, y), 10)
+        # pygame.draw.circle(screen, pygame.Color("red"), (x, y), 10)
+        font = pygame.font.Font(None, 20)
+        surf = font.render(str(i), True, pygame.Color("red"))
+        screen.blit(surf, (x, y))
 
     def position(self, x0, y0):
         x = x0 + self.x * (TILE_WIDTH/2)

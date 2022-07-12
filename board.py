@@ -64,5 +64,5 @@ class Board:
             tile.render(x0, y0, screen)
         for path in self.paths:
             path.render(x0, y0, screen)
-        for intersection in self.intersections:
-            intersection.render(x0, y0, screen)
+        for i, intersection in enumerate(self.intersections):
+            intersection.render(x0, y0, screen, i)

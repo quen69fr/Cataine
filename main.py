@@ -7,6 +7,8 @@ import pygame
 from board import Board
 from resource_manager import ResourceManager
 
+pygame.init()
+
 screen = pygame.display.set_mode((660, 660))
 srect = screen.get_rect()
 
