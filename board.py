@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+from resource import Resource
+
 import pygame
 
 from constants import *
-from resource import Resource
 from tile import Tile
-from tile_path import TilePath
 from tile_intersection import TileIntersection
+from tile_path import TilePath
 
 
 class Board:
@@ -28,7 +29,7 @@ class Board:
             path = TilePath([inter1, inter2])
             inter1.add_neighbour_path(path)
             inter2.add_neighbour_path(path)
-            return path
+            self.paths.append(path)
 
         for (i, j), res, num in zip(LIST_TILES_COORDS, list_tiles_resources, list_tiles_dice_numbers):
             tile = Tile(res, i, j, num)
@@ -41,6 +42,8 @@ class Board:
                 inter = find_intersection(i + di, j + dj)
                 inter_exists = inter is not None
                 if not inter_exists:
+                    assert i + di >= 0
+                    assert j + dj >= 0
                     inter = TileIntersection(i + di, j + dj)
                     self.intersections.append(inter)
                     if first_inter is None:
@@ -54,7 +57,7 @@ class Board:
                 previous_inter = inter
                 previous_inter_exists = inter_exists
             if not (previous_inter_exists and first_inter_exists):
-                self.paths.append(create_path(first_inter, previous_inter))
+                create_path(first_inter, previous_inter)
 
     def render(self, x0: int, y0: int, screen: pygame.Surface):
         for tile in self.tiles:
