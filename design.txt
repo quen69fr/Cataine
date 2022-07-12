@@ -1,0 +1,124 @@
+get_all_intersections():
+
+
+render_tiles():
+    for inte in get_all
+
+
+class Board
+    tiles
+
+class Tile
+    resource_kind
+    index
+    intersections
+    paths
+    has_thief
+    dice_number
+
+class TilePath
+    road = NONE | Player
+    intersections
+    port = Resource | THREE_ONE | NONE
+
+class TileIntersection
+    content = None | (COLONY, Player) | (TOWN, Player)
+    neighbour_paths
+    neighbour_tiles
+
+class Player:
+    id
+    strategy
+    resource_cards
+    dev_cards
+    board
+
+    get_number_of_victory_points()
+    get_longest_road()
+    get_roads()
+    add_resource()
+
+    get_all_group_actions()
+        GroupAction = List[Action]
+        STOP = []
+        actions: List[GroupAction] = [STOP]
+        for action in get_all_one_shot_actions():
+            board.apply_action(action)
+            group_actions = get_all_group_actions(curr_player)
+            for ga in group_actions:
+                ga.insert(0, action)
+            actions += group_actions
+            board.undo_action(action)
+
+    get_all_one_shot_actions():
+        if has_enough_for_a_road():
+            scan all places for roads
+
+        if has enough for ...
+            scan ...
+
+
+
+
+class Action:
+    static cost_resource: List[Resource]
+
+class ActionBuildRoad(Action):
+    (free or not for double free road)
+    path: Path
+
+class ActionBuildTown
+    intersection: Intersection
+
+class ActionBuyDevCard:
+
+class ActionActivateKnight:
+    target_tile
+    target_player
+
+class ActionActivateVictoryPoint:
+class ActionActivateTwoFreeResources:
+    resource1: Resource
+    resource2: Resource
+
+class ActionActivateMonopole:
+    resource: Resource
+
+class ActionActivateTwoRoads:
+    road1: Path
+    road2: Path
+
+class Game:
+    board
+    players
+
+    turn()
+        throw dice
+        add resources to players or move thief
+        player plays
+            (exchange)
+            actions
+
+    render()
+        board.render()
+            tiles.blit()
+            for each intersection/vertex
+                render
+
+    main()
+        while True:
+            if press space:
+                turn()
+
+            self.render()
+
+class Strategy:
+
+
+class SubStrategyPlacementDumb:
+class SubStrategyPlacementBasic:
+    """ all resources are equivalent
+        get highest prob of getting resource
+    """
+
+
