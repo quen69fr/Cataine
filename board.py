@@ -51,7 +51,7 @@ class Board:
                 inter.add_neighbour_tile(tile)
                 if first_inter is None:
                     first_inter = inter
-                if previous_inter is not None and not (inter_exists or previous_inter_exists):
+                if previous_inter is not None and not (inter_exists and previous_inter_exists):
                     create_path(inter, previous_inter)
                 tile.add_intersection(inter)
                 previous_inter = inter
