@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from dataclasses import dataclass
+from resource import Resource
 from typing import TYPE_CHECKING
-
-from yaml import add_path_resolver
 
 if TYPE_CHECKING:
     from player import Player
@@ -12,6 +11,8 @@ if TYPE_CHECKING:
 
 
 class Action:
+    cost: dict[Resource, int]
+
     @abstractmethod
     def apply(self):
         pass
@@ -24,24 +25,26 @@ class Action:
     def available(self, player: Player):
         pass
 
-
 @dataclass
 class ActionBuildRoad(Action):
     path: TilePath
     player: Player
+    cost = {Resource.WOOD: 1, Resource.CLAY: 1}
 
     def apply(self):
         if self.path.road_player is not None:
             raise ValueError("building road on a tile path that already has a tile path")
         self.path.road_player = self.player
+        self.player.consume_resource_cards(self.cost)
 
     def undo(self):
-        assert self.path.road_player == self.path
+        assert self.path.road_player == self.player
         self.path.road_player = None
+        self.player.add_resource_cards(self.cost)
 
     def available(self):
         # path is occupied
-        if self.path.content is not None:
+        if self.path.road_player is not None:
             return False
 
         # check if there is one of our colony/town around it
@@ -59,3 +62,4 @@ class ActionBuildRoad(Action):
                 return True
 
         return False
+

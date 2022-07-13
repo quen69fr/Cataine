@@ -1,9 +1,14 @@
+from __future__ import annotations
+
 import random
-from abc import abstractclassmethod, abstractmethod
+from abc import abstractmethod
+from typing import TYPE_CHECKING
 
 from actions import Action
 from board import Board
-from player import Player
+
+if TYPE_CHECKING:
+    from player import Player
 
 
 class Strategy:
@@ -15,5 +20,8 @@ class Strategy:
 class StrategyChooseRandom(Strategy):
 
     def play(self, board: Board, player: Player, all_actions: list[Action]) -> Action:
-        return random.choice(all_actions)
+        print("choose from:", all_actions)
+        result = random.choice(all_actions)
+        print("  ", result)
+        return result
         

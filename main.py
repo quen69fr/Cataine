@@ -8,6 +8,9 @@ import pygame
 from board import Board
 from Game import Game
 from resource_manager import ResourceManager
+import random
+
+random.seed(1)
 
 pygame.init()
 
