@@ -53,6 +53,7 @@ class Game:
             self._throw_dice()
         else:
             self._current_player_plays()
+            self.turn_number += 1
         self.halfturn_flag = not self.halfturn_flag
         
 
@@ -62,10 +63,12 @@ class Game:
                 continue
 
             if inte.content.kind == ConstructionKind.COLONY:
+                print(f"{inte.content.player} receives 1 {tile.resource}")
                 inte.content.player.add_resource_card(tile.resource)
             elif inte.content.kind == ConstructionKind.TOWN:
                 inte.content.player.add_resource_card(tile.resource)
                 inte.content.player.add_resource_card(tile.resource)
+                print(f"{inte.content.player} receives 2 {tile.resource}")
 
     def _throw_dice(self):
         r = random.randint(1, 6) + random.randint(1, 6)

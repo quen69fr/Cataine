@@ -37,8 +37,9 @@ class Player:
         self.strategy = StrategyChooseRandom()
 
     def play(self):
-        print("player", self.color, "resources", self.resource_cards)
+        print(self, "resources", self.resource_cards)
         group_actions = self.strategy.play(self.board, self, self.get_all_group_actions())
+        print("selected:", group_actions)
         for action in group_actions:
             action.apply()
             
@@ -65,11 +66,9 @@ class Player:
             yield from self._get_all_one_shot_action_build_road()
 
     def _get_all_one_shot_action_build_road(self) -> Generator[Action]:
-        print('looking to build road')
         for path in self.board.paths:
             action = ActionBuildRoad(path, self)
             if action.available():
-                print("found a road")
                 yield action
 
     def place_initial_colony(self):
@@ -101,6 +100,12 @@ class Player:
     def add_resource_cards(self, cost: dict[Resource, int]):
         for res, count in cost.items():
             self.resource_cards[res] += count
+
+    def __repr__(self):
+        return f"<Player {self.color.name}>"
+    
+    def __str__(self):
+        return repr(self)
         
 
 def neighbour_tiles_expectation(intersection: TileIntersection):
