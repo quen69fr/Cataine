@@ -127,3 +127,17 @@ class SubStrategyPlacementBasic:
     """
 
 
+- strategy 
+    - prioritise towns
+    - diversify resources
+
+- sub objectives
+    - build a town
+    - make a new colony
+    - move the thief
+    - build longest road
+    - build largest army
+
+- composants
+    - rank each action
+        - rank each position for a colony

@@ -26,6 +26,9 @@ class Player:
         # self.dev_cards: list[DevCards] = []
         self.board = board
 
+    def play(self):
+        self.strategy.play(self.get_all_group_actions())
+
     def get_all_group_actions(self) -> list[Action]:
         def do():
             actions = []

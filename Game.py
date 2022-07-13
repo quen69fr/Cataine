@@ -38,6 +38,9 @@ class Game:
             self._turn_playing()
         self.turn_number += 1
 
+    def _turn_player(self):
+        self.players[self.turn_number % len(self.players)].play()
+
     def _turn_placing_colonies(self):
         self.players[self.turn_number % len(self.players)].place_initial_colony()
 
