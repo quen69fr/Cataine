@@ -1,8 +1,10 @@
 from abc import abstractmethod
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-# from player import Player
-# from tile_path import TilePath
+if TYPE_CHECKING:
+    from player import Player
+    from tile_path import TilePath
 
 
 class Action:

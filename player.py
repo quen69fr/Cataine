@@ -2,18 +2,22 @@ from __future__ import annotations
 
 from email.generator import Generator
 from resource import Resource
+from typing import TYPE_CHECKING
 
 from actions import Action, ActionBuildRoad
 from color import Color
 from construction import ConstructionKind
 
+if TYPE_CHECKING:
+    from board import Board
+
 
 class Player:
     color: Color
     resource_cards: list[Resource]
-    board: 'Board'
+    board: Board
 
-    def __init__(self, color: Color, board: 'Board'):
+    def __init__(self, color: Color, board: Board):
         self.color = color
         self.resource_cards: list[Resource] = []
         # self.dev_cards: list[DevCards] = []
