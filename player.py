@@ -44,6 +44,6 @@ class Player:
 
     def _get_all_one_shot_action_build_road(self) -> Generator[Action]:
         for path in self.board.paths:
-            has_adjacent_town_or_colony = path.intersections[0].content[1]
-            yield ActionBuildRoad(path, player=self)
-
+            action = ActionBuildRoad(path, self)
+            if action.available():
+                yield action
