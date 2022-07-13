@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from cmath import exp
-from collections import defaultdict
-from curses import has_key
 from email.generator import Generator
 from resource import Resource
 from typing import TYPE_CHECKING
+
+import pygame
 
 from actions import Action, ActionBuildRoad
 from color import Color
 from construction import Construction, ConstructionKind
 from probability import get_expectation_of_intersection
+from render_text import render_text
 from strategy import StrategyChooseRandom
 from tile_intersection import TileIntersection
 
@@ -42,7 +42,7 @@ class Player:
         print("selected:", group_actions)
         for action in group_actions:
             action.apply()
-            
+
     def get_all_group_actions(self) -> list[Action]:
 
         def do():
@@ -75,8 +75,8 @@ class Player:
         best = None
         for intersection in self.board.intersections:
             if best is None \
-                or intersection.can_build() \
-                and neighbour_tiles_expectation(best) < neighbour_tiles_expectation(intersection):
+                    or intersection.can_build() \
+                    and neighbour_tiles_expectation(best) < neighbour_tiles_expectation(intersection):
                 best = intersection
 
         assert best.content is None
@@ -84,7 +84,6 @@ class Player:
 
     def add_resource_card(self, res: Resource):
         self.resource_cards[res] += 1
-
 
     def has_specified_resources(self, res: dict[Resource, int]):
         for res, count in res.items():
@@ -106,8 +105,19 @@ class Player:
     
     def __str__(self):
         return repr(self)
-        
+
+    def render(self, screen: pygame.Surface, x0: int, y0: int, my_turn: bool):
+        if my_turn:
+            screen.fill((0, 0, 0), (x0 - 5, y0 - 5, 240, 290))
+        screen.fill(self.color.value, (x0, y0, 230, 280))
+        screen.fill((255, 255, 255), (x0 + 5, y0 + 5, 220, 270))
+        x = x0 + 15
+        y = y0 + 80
+        for res, num in self.resource_cards.items():
+            render_text(screen, f"{res}: {num}", x, y, 30, (0, 0, 0), False)
+            y += 40
+
 
 def neighbour_tiles_expectation(intersection: TileIntersection):
-    return get_expectation_of_intersection(t.dice_number for t in intersection.neighbour_tiles if t.resource != Resource.DESERT)
-
+    return get_expectation_of_intersection(
+        t.dice_number for t in intersection.neighbour_tiles if t.resource != Resource.DESERT)

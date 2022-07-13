@@ -6,7 +6,7 @@ from resource import (BOARD_LAYOUT_DICE_NUMBERS, BOARD_LAYOUT_RESOURCES,
                       BOARD_PORT_RESOURCES)
 from telnetlib import GA
 
-import pygments
+import pygame
 
 from board import Board
 from color import Color
@@ -18,6 +18,7 @@ from tile import Tile
 class GameState(Enum):
     PLACING_COLONIES = 1
     PLAYING = 2
+
 
 class Game:
     board: Board
@@ -75,7 +76,7 @@ class Game:
         print("dice result", r)
         if r == 7:
             # check number of cards
-            pass # TODO
+            pass  # TODO
         else:
             for t in self.board.tiles:
                 if t.dice_number == r:
@@ -87,5 +88,7 @@ class Game:
     def _turn_placing_colonies(self):
         self.players[self.turn_number % len(self.players)].place_initial_colony()
 
-    def render(self, screen: pygments.Surface):
+    def render(self, screen: pygame.Surface):
         self.board.render(40, 40, screen)
+        for i, player in enumerate(self.players):
+            player.render(screen, 800 + 250 * (i // 2), 50 + 300 * (i % 2), self.turn_number % len(self.players) == i)

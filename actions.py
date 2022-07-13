@@ -25,6 +25,7 @@ class Action:
     def available(self, player: Player):
         pass
 
+
 @dataclass
 class ActionBuildRoad(Action):
     path: TilePath
@@ -49,12 +50,12 @@ class ActionBuildRoad(Action):
 
         # check if there is one of our colony/town around it
         has_own_construction = lambda intersection: intersection.content is not None \
-            and intersection.content.player == self.player
+                                                    and intersection.content.player == self.player
 
         if has_own_construction(self.path.intersections[0]) or \
-           has_own_construction(self.path.intersections[1]):
-           return True
-        
+                has_own_construction(self.path.intersections[1]):
+            return True
+
         # check if there is one of our road around it
         adjacent_paths = self.path.intersections[0].neighbour_paths + self.path.intersections[1].neighbour_paths
         for p in adjacent_paths:

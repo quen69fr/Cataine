@@ -7,7 +7,7 @@ from resource import (BOARD_LAYOUT_DICE_NUMBERS, BOARD_LAYOUT_RESOURCES,
 import pygame
 
 from board import Board
-from Game import Game
+from game import Game
 from resource_manager import ResourceManager
 
 random.seed(1)
