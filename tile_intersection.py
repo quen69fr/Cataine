@@ -37,7 +37,5 @@ class TileIntersection:
 
     def position(self, x0, y0):
         x = x0 + self.x * (TILE_WIDTH/2)
-        a = TILE_HEIGHT - 38
-        b = 38
-        y = y0 + a * (self.y // 2) + b * (self.y % 2)
+        y = y0 + (TILE_HEIGHT - TILE_HAT_HEIGHT) * (self.y // 2) + TILE_HAT_HEIGHT * (self.y % 2)
         return x, y

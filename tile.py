@@ -1,11 +1,10 @@
 
 from __future__ import annotations
 
-import sys
-from resource import Resource
-
 import pygame
 
+from constants import *
+from resource import Resource
 from resource_manager import ResourceManager
 from tile_intersection import TileIntersection
 
@@ -25,4 +24,5 @@ class Tile:
         self.intersections.append(intersection)
 
     def render(self, x0: int, y0: int, screen: pygame.Surface):
-        screen.blit(ResourceManager.TILES[self.resource], (x0 + self.x * 132/2, y0 + self.y * (153 - 38)))
+        screen.blit(ResourceManager.TILES[self.resource], (x0 + self.x * TILE_WIDTH/2,
+                                                           y0 + self.y * (TILE_HEIGHT - TILE_HAT_HEIGHT)))

@@ -15,4 +15,3 @@ class TilePath:
         start = self.intersections[0].position(x0, y0)
         end = self.intersections[1].position(x0, y0)
         pygame.draw.line(screen, pygame.Color("blue"), start, end, 5)
-        # print(start, end)

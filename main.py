@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from resource import Resource
-
 import pygame
 
+from resource import BOARD_LAYOUT_RESOURCES, BOARD_LAYOUT_DICE_NUMBERS
 from board import Board
 from resource_manager import ResourceManager
 
@@ -14,29 +13,10 @@ srect = screen.get_rect()
 
 clock = pygame.time.Clock()
 
-board = Board([
-    Resource.WOOD,
-    Resource.WOOL,
-    Resource.WOOL,
-    Resource.HAY,
-    Resource.ROCK,
-    Resource.HAY,
-    Resource.WOOD,
-    Resource.WOOD,
-    Resource.CLAY,
-    Resource.DESERT,
-    Resource.ROCK,
-    Resource.HAY,
-    Resource.HAY,
-    Resource.ROCK,
-    Resource.WOOD,
-    Resource.WOOL,
-    Resource.CLAY,
-    Resource.WOOL,
-    Resource.CLAY
-], [6,3,8,2,4,5,10,5,9,0,6,9,10,11,3,12,8,4,11])
+board = Board(BOARD_LAYOUT_RESOURCES, BOARD_LAYOUT_DICE_NUMBERS)
 
 ResourceManager.load()
+
 
 def main():
     while True:
