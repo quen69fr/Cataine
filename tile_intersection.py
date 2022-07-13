@@ -34,7 +34,7 @@ class TileIntersection:
         if self.content is None:
             return
         x, y = self.position(x0, y0)
-        img = ResourceManager.CONSTRUCTIONS[self.content.kind][self.content.player.color.value]
+        img = ResourceManager.CONSTRUCTIONS[self.content.kind][self.content.player.color]
         screen.blit(img, (x - img.get_width() / 2, y - img.get_height() / 2))
 
     def position(self, x0: int, y0: int):
@@ -42,3 +42,10 @@ class TileIntersection:
         y = y0 + (ResourceManager.TILE_HEIGHT - ResourceManager.TILE_HAT_HEIGHT) * (self.y // 2) + \
             ResourceManager.TILE_HAT_HEIGHT * (self.y % 2)
         return x, y
+
+    def can_build(self):
+        for p in self.neighbour_paths:
+            for t in p.intersections:
+                if t.content is not None:
+                    return False
+        return True

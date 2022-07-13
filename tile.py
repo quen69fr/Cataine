@@ -1,9 +1,10 @@
 
 from __future__ import annotations
 
+from resource import Resource
+
 import pygame
 
-from resource import Resource
 from resource_manager import ResourceManager
 from tile_intersection import TileIntersection
 

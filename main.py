@@ -1,25 +1,25 @@
 from __future__ import annotations
 
+from resource import (BOARD_LAYOUT_DICE_NUMBERS, BOARD_LAYOUT_RESOURCES,
+                      BOARD_PORT_RESOURCES)
+
 import pygame
 
-from resource import BOARD_LAYOUT_RESOURCES, BOARD_LAYOUT_DICE_NUMBERS, BOARD_PORT_RESOURCES
 from board import Board
+from Game import Game
 from resource_manager import ResourceManager
-
 
 pygame.init()
 
 background = pygame.image.load("images/FondEau.png")
 
 screen = pygame.display.set_mode(background.get_size())
-srect = screen.get_rect()
 
 clock = pygame.time.Clock()
 
-board = Board(BOARD_LAYOUT_RESOURCES, BOARD_LAYOUT_DICE_NUMBERS, BOARD_PORT_RESOURCES)
-
 ResourceManager.load()
 
+game = Game()
 
 def main():
     while True:
@@ -28,10 +28,14 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    game.turn()
+                elif event.key == pygame.K_ESCAPE:
+                    return
 
         screen.blit(background, (0, 0))
-        board.render(600, 44, screen)
-
+        game.render(screen)
         pygame.display.flip()
 
 

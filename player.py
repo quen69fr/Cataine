@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+from cmath import exp
 from email.generator import Generator
 from resource import Resource
 from typing import TYPE_CHECKING
 
 from actions import Action, ActionBuildRoad
 from color import Color
-from construction import ConstructionKind
+from construction import Construction, ConstructionKind
+from probability import get_expectation_of_intersection
+from tile_intersection import TileIntersection
 
 if TYPE_CHECKING:
     from board import Board
@@ -47,3 +50,18 @@ class Player:
             action = ActionBuildRoad(path, self)
             if action.available():
                 yield action
+
+    def place_initial_colony(self):
+        best = None
+        for intersection in self.board.intersections:
+            if best is None \
+                or intersection.can_build() \
+                and neighbour_tiles_expectation(best) < neighbour_tiles_expectation(intersection):
+                best = intersection
+
+        assert best.content is None
+        best.content = Construction(kind=ConstructionKind.COLONY, player=self)
+
+def neighbour_tiles_expectation(intersection: TileIntersection):
+    return get_expectation_of_intersection(t.dice_number for t in intersection.neighbour_tiles if t.resource != Resource.DESERT)
+

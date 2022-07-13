@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """ this function probably belongs somewhere else, but you can cut/paste it
     easy
 """
@@ -18,6 +20,6 @@ def get_probability_to_roll(n):
         12: 1
     }[n] / 36
 
-def get_probability_of_intersection(ns):
-    return sum(get_probability_of_intersection(n) for n in ns)
+def get_expectation_of_intersection(ns: list[int]):
+    return sum(get_probability_to_roll(n) for n in ns)
     
