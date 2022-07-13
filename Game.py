@@ -4,6 +4,7 @@ import random
 from enum import Enum
 from resource import (BOARD_LAYOUT_DICE_NUMBERS, BOARD_LAYOUT_RESOURCES,
                       BOARD_PORT_RESOURCES)
+from telnetlib import GA
 
 import pygments
 
@@ -29,6 +30,7 @@ class Game:
             Player(Color.BLUE, self.board)
         ]
         self.turn_number = 0
+        self.halfturn_flag = True
 
         self.game_state = GameState.PLACING_COLONIES
 
@@ -38,8 +40,21 @@ class Game:
             if self.turn_number == len(self.players) * 2 - 1:
                 self.game_state = GameState.PLAYING
         else:
-            self._turn_playing()
+            self._throw_dice()
+            self._current_player_plays()
         self.turn_number += 1
+
+    def halfturn(self):
+        if self.game_state == GameState.PLACING_COLONIES:
+            self.turn()
+            return
+
+        if self.halfturn_flag:
+            self._throw_dice()
+        else:
+            self._current_player_plays()
+        self.halfturn_flag = not self.halfturn_flag
+        
 
     def _give_resources_to_players(self, tile: Tile):
         for inte in tile.intersections:
@@ -52,9 +67,7 @@ class Game:
                 inte.content.player.add_resource_card(tile.resource)
                 inte.content.player.add_resource_card(tile.resource)
 
-
-
-    def _turn_playing(self):
+    def _throw_dice(self):
         r = random.randint(1, 6) + random.randint(1, 6)
         print("dice result", r)
         if r == 7:
@@ -65,6 +78,7 @@ class Game:
                 if t.dice_number == r:
                     self._give_resources_to_players(t)
 
+    def _current_player_plays(self):
         self.players[self.turn_number % len(self.players)].play()
 
     def _turn_placing_colonies(self):

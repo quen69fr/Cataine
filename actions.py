@@ -62,5 +62,3 @@ class ActionBuildRoad(Action):
                 return True
 
         return False
-
-

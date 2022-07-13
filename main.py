@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from resource import (BOARD_LAYOUT_DICE_NUMBERS, BOARD_LAYOUT_RESOURCES,
                       BOARD_PORT_RESOURCES)
 
@@ -8,7 +9,6 @@ import pygame
 from board import Board
 from Game import Game
 from resource_manager import ResourceManager
-import random
 
 random.seed(1)
 
@@ -33,7 +33,7 @@ def main():
                 return
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    game.turn()
+                    game.halfturn()
                 elif event.key == pygame.K_ESCAPE:
                     return
 
