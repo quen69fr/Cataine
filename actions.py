@@ -13,7 +13,7 @@ class Action:
     @abstractmethod
     def apply(self):
         pass
-    
+
     @abstractmethod
     def undo(self):
         pass
@@ -21,6 +21,7 @@ class Action:
     @abstractmethod
     def available(self, player: Player):
         pass
+
 
 @dataclass
 class ActionBuildRoad(Action):
@@ -40,4 +41,4 @@ class ActionBuildRoad(Action):
         assert player == self.player
         # check if there is a road around it
         # check if there is a colony around it
-        # if 
+        # if

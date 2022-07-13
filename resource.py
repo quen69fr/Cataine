@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 from enum import Enum
+from dataclasses import dataclass
 
 
 class Resource(Enum):
@@ -10,6 +12,12 @@ class Resource(Enum):
     ROCK = 4
     WOOD = 5
     P_3_FOR_1 = 6
+
+
+@dataclass
+class Port:
+    kind: Resource
+    direction: int
 
 
 BOARD_LAYOUT_RESOURCES = [

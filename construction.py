@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import namedtuple
 from dataclasses import dataclass
 from enum import Enum
 from resource import Resource
@@ -15,10 +14,12 @@ class ConstructionKind(Enum):
     COLONY = 1
     TOWN = 2
 
+
 @dataclass
 class Construction:
     kind: ConstructionKind
     player: Player
+
 
 COST_CONSTRUCTIONS = {
     ConstructionKind.ROAD: [Resource.WOOD, Resource.CLAY],

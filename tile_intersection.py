@@ -4,15 +4,12 @@ from typing import TYPE_CHECKING
 
 import pygame
 
-from color import Color
-from construction import Construction, ConstructionKind
-from player import Player
+from construction import Construction
 from resource_manager import ResourceManager
 
 if TYPE_CHECKING:
     from tile import Tile
     from tile_path import TilePath
-
 
 
 class TileIntersection:
