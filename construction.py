@@ -1,8 +1,13 @@
 from __future__ import annotations
 
 from collections import namedtuple
+from dataclasses import dataclass
 from enum import Enum
 from resource import Resource
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from player import Player
 
 
 class ConstructionKind(Enum):
@@ -10,7 +15,10 @@ class ConstructionKind(Enum):
     COLONY = 1
     TOWN = 2
 
-Construction = namedtuple('Construction', ['kind', 'player'])
+@dataclass
+class Construction:
+    kind: ConstructionKind
+    player: Player
 
 COST_CONSTRUCTIONS = {
     ConstructionKind.ROAD: [Resource.WOOD, Resource.CLAY],

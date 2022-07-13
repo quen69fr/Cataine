@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 import pygame
 
 from color import Color
-from construction import ConstructionKind
+from construction import Construction, ConstructionKind
 from player import Player
 from resource_manager import ResourceManager
 
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 class TileIntersection:
     def __init__(self, x: int, y: int, neighbour_paths: list[TilePath] = None, neighbour_tiles: list[Tile] = None):
-        self.content: tuple[ConstructionKind, Color] | None = None  # TODO : Player
+        self.content: Construction | None = None
         self.x = x
         self.y = y
         if neighbour_paths is None:
@@ -37,7 +37,7 @@ class TileIntersection:
         if self.content is None:
             return
         x, y = self.position(x0, y0)
-        img = ResourceManager.CONSTRUCTIONS[self.content[0]][self.content[1]]
+        img = ResourceManager.CONSTRUCTIONS[self.content.kind][self.content.player.color.value]
         screen.blit(img, (x - img.get_width() / 2, y - img.get_height() / 2))
 
     def position(self, x0: int, y0: int):
