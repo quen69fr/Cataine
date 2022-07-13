@@ -6,9 +6,10 @@ from resource import BOARD_LAYOUT_RESOURCES, BOARD_LAYOUT_DICE_NUMBERS
 from board import Board
 from resource_manager import ResourceManager
 
+
 pygame.init()
 
-screen = pygame.display.set_mode((660, 660))
+screen = pygame.display.set_mode((760, 760))
 srect = screen.get_rect()
 
 clock = pygame.time.Clock()
@@ -26,7 +27,7 @@ def main():
             if event.type == pygame.QUIT:
                 return
 
-        board.render(0, 0, screen)
+        board.render(50, 50, screen)
 
         pygame.display.flip()
 

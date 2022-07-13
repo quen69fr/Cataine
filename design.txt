@@ -72,6 +72,9 @@ class ActionBuildRoad(Action):
 class ActionBuildTown
     intersection: Intersection
 
+class ActionBuildColony
+    intersection: Intersection
+
 class ActionBuyDevCard:
 
 class ActionActivateKnight:

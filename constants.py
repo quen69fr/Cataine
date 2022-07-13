@@ -1,6 +1,3 @@
-TILE_WIDTH = 132
-TILE_HEIGHT = 153
-TILE_HAT_HEIGHT = 38
 
 LIST_TILES_COORDS = [(2, 0), (4, 0), (6, 0),
                      (1, 2), (3, 2), (5, 2), (7, 2),
@@ -9,3 +6,5 @@ LIST_TILES_COORDS = [(2, 0), (4, 0), (6, 0),
                      (2, 8), (4, 8), (6, 8)]
 
 LIST_TILES_INTERSECTIONS_COORDS = [(1, 0), (2, 1), (2, 2), (1, 3), (0, 2), (0, 1)]
+
+THIEF_INITIAL_TILE = 9

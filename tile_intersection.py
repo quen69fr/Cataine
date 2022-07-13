@@ -1,7 +1,9 @@
 
 import pygame
 
-from constants import *
+from resource_manager import ResourceManager
+from color import Color
+from construction import Construction
 
 # from tile import Tile
 # from tile_path import TilePath
@@ -10,7 +12,7 @@ from constants import *
 class TileIntersection:
     # def __init__(self, neighbour_paths: list[TilePath] = None, neighbour_tiles: list[Tile] = None):
     def __init__(self, x: int, y: int, neighbour_paths: list = None, neighbour_tiles: list = None):
-        self.content = None
+        self.content: tuple[Construction, Color] | None = None  # TODO : Player
         self.x = x
         self.y = y
         if neighbour_paths is None:
@@ -28,14 +30,15 @@ class TileIntersection:
     def add_neighbour_tile(self, neighbour_tile):
         self.neighbour_tiles.append(neighbour_tile)
 
-    def render(self, x0: int, y0: int, screen: pygame.Surface, i):
+    def render(self, x0: int, y0: int, screen: pygame.Surface):
+        if self.content is None:
+            return
         x, y = self.position(x0, y0)
-        # pygame.draw.circle(screen, pygame.Color("red"), (x, y), 10)
-        font = pygame.font.Font(None, 20)
-        surf = font.render(str(i), True, pygame.Color("red"))
-        screen.blit(surf, (x, y))
+        img = ResourceManager.CONSTRUCTIONS[self.content[0]][self.content[1]]
+        screen.blit(img, (x - img.get_width() / 2, y - img.get_height() / 2))
 
     def position(self, x0, y0):
-        x = x0 + self.x * (TILE_WIDTH/2)
-        y = y0 + (TILE_HEIGHT - TILE_HAT_HEIGHT) * (self.y // 2) + TILE_HAT_HEIGHT * (self.y % 2)
+        x = x0 + self.x * (ResourceManager.TILE_WIDTH/2)
+        y = y0 + (ResourceManager.TILE_HEIGHT - ResourceManager.TILE_HAT_HEIGHT) * (self.y // 2) + \
+            ResourceManager.TILE_HAT_HEIGHT * (self.y % 2)
         return x, y

@@ -4,7 +4,7 @@ from resource import Resource
 
 import pygame
 
-from constants import *
+from constants import LIST_TILES_COORDS, LIST_TILES_INTERSECTIONS_COORDS, THIEF_INITIAL_TILE
 from tile import Tile
 from tile_intersection import TileIntersection
 from tile_path import TilePath
@@ -12,9 +12,11 @@ from tile_path import TilePath
 
 class Board:
     def __init__(self, list_tiles_resources: list[Resource], list_tiles_dice_numbers: list[int]):
-        self.tiles = []
-        self.paths = []
-        self.intersections = []
+        self.tiles: list[Tile] = []
+        self.paths: list[TilePath] = []
+        self.intersections: list[TileIntersection] = []
+
+        self.thief_tile: int = THIEF_INITIAL_TILE
 
         self.create_bord(list_tiles_resources, list_tiles_dice_numbers)
 
@@ -60,9 +62,11 @@ class Board:
                 create_path(first_inter, previous_inter)
 
     def render(self, x0: int, y0: int, screen: pygame.Surface):
-        for tile in self.tiles:
-            tile.render(x0, y0, screen)
+        for i, tile in enumerate(self.tiles):
+            tile.render(x0, y0, screen, i == self.thief_tile)
         for path in self.paths:
-            path.render(x0, y0, screen)
-        for i, intersection in enumerate(self.intersections):
-            intersection.render(x0, y0, screen, i)
+            path.render_first_layer(x0, y0, screen)
+        for path in self.paths:
+            path.render_second_layer(x0, y0, screen)
+        for intersection in self.intersections:
+            intersection.render(x0, y0, screen)
