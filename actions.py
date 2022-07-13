@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import abstractmethod
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -17,13 +19,13 @@ class Action:
         pass
 
     @abstractmethod
-    def available(self, player: 'Player'):
+    def available(self, player: Player):
         pass
 
 @dataclass
 class ActionBuildRoad(Action):
-    path: 'TilePath'
-    player: 'Player'
+    path: TilePath
+    player: Player
 
     def apply(self):
         if self.path.road_player is not None:
@@ -34,7 +36,7 @@ class ActionBuildRoad(Action):
         assert self.path.road_player == self.path
         self.path.road_player = None
 
-    def available(self, player: 'Player'):
+    def available(self, player: Player):
         assert player == self.player
         # check if there is a road around it
         # check if there is a colony around it
