@@ -39,3 +39,9 @@ class Tile:
     def position(self, x0: int, y0: int):
         return (x0 + self.x * ResourceManager.TILE_WIDTH / 2,
                 y0 + self.y / 2 * (ResourceManager.TILE_HEIGHT - ResourceManager.TILE_HAT_HEIGHT))
+
+    def __repr__(self):
+        return f"<Tile res={self.resource} dice={self.dice_number}>"
+
+    def __str__(self):
+        return repr(self)

@@ -37,12 +37,11 @@ class Player:
         self.strategy = StrategyChooseRandom()
 
     def play(self):
-        print("Actions:", list(self.get_all_one_shot_actions()))
+        print("player", self.color, "resources", self.resource_cards)
         group_actions = self.strategy.play(self.board, self, self.get_all_group_actions())
-        print("  selected", group_actions)
         for action in group_actions:
             action.apply()
-
+            
     def get_all_group_actions(self) -> list[Action]:
 
         def do():
