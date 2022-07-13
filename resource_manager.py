@@ -17,6 +17,7 @@ class ResourceManager:
 
     TILE_WIDTH, TILE_HEIGHT = 0, 0
     TILE_HAT_HEIGHT = 38
+    TILE_PATH_LENGTH = 76
     ROAD_WIDTH = 12
 
     THIEF_IMAGE = None
@@ -24,6 +25,8 @@ class ResourceManager:
 
     DICE_NUMBER_RADIUS = 20
     DICE_NUMBER_IMAGE: dict[int, pygame.Surface] = {}
+
+    PORTS: dict[Resource, pygame.Surface] = {}
 
     @staticmethod
     def load():
@@ -74,3 +77,10 @@ class ResourceManager:
 
         ResourceManager.THIEF_IMAGE = pygame.image.load("images/Voleur.png")
         ResourceManager.THIEF_IMAGE_WITH_DICE_NUMBER = pygame.image.load("images/VoleurNumero.png")
+
+        ResourceManager.PORTS[Resource.ROCK] = pygame.image.load("images/PortPierre.png")
+        ResourceManager.PORTS[Resource.WOOD] = pygame.image.load("images/PortBois.png")
+        ResourceManager.PORTS[Resource.HAY] = pygame.image.load("images/PortFoin.png")
+        ResourceManager.PORTS[Resource.CLAY] = pygame.image.load("images/PortArgile.png")
+        ResourceManager.PORTS[Resource.WOOL] = pygame.image.load("images/PortMouton.png")
+        ResourceManager.PORTS[Resource.P_3_FOR_1] = pygame.image.load("images/Port3contre1.png")
