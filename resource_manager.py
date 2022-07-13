@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from resource import Resource
+
 import pygame.gfxdraw
 
-from render_text import render_text
-from resource import Resource
-from construction import Construction
 from color import Color
+from construction import Construction
+from render_text import render_text
 
 
 class ResourceManager:
@@ -50,6 +51,7 @@ class ResourceManager:
             colored_town.blit(town, (0, 0))
             ResourceManager.CONSTRUCTIONS[Construction.TOWN][color] = colored_town
 
+        # make the circles around the dice numbers
         r = ResourceManager.DICE_NUMBER_RADIUS
         for num in range(2, 13):
             img_num = pygame.Surface((2 * r, 2 * r), pygame.SRCALPHA)
