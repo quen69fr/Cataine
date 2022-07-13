@@ -5,15 +5,15 @@ from resource import Resource
 import pygame.gfxdraw
 
 from color import Color
-from construction import Construction
+from construction import ConstructionKind
 from render_text import render_text
 
 
 class ResourceManager:
     TILES: dict[Resource, pygame.Surface] = {}
-    CONSTRUCTIONS: dict[Construction, dict[Color, pygame.Surface]] = {
-        Construction.COLONY: {},
-        Construction.TOWN: {}
+    CONSTRUCTIONS: dict[ConstructionKind, dict[Color, pygame.Surface]] = {
+        ConstructionKind.COLONY: {},
+        ConstructionKind.TOWN: {}
     }
 
     TILE_WIDTH, TILE_HEIGHT = 0, 0
@@ -44,12 +44,12 @@ class ResourceManager:
             colored_colony = pygame.Surface(colony.get_size(), pygame.SRCALPHA)
             pygame.draw.polygon(colored_colony, color.value, [(3, 9), (15, 1), (26, 9), (26, 25), (3, 25)], 0)
             colored_colony.blit(colony, (0, 0))
-            ResourceManager.CONSTRUCTIONS[Construction.COLONY][color] = colored_colony
+            ResourceManager.CONSTRUCTIONS[ConstructionKind.COLONY][color] = colored_colony
 
             colored_town = pygame.Surface(town.get_size(), pygame.SRCALPHA)
             pygame.draw.polygon(colored_town, color.value, [(3, 9), (19, 1), (34, 9), (34, 33), (3, 33)], 0)
             colored_town.blit(town, (0, 0))
-            ResourceManager.CONSTRUCTIONS[Construction.TOWN][color] = colored_town
+            ResourceManager.CONSTRUCTIONS[ConstructionKind.TOWN][color] = colored_town
 
         # make the circles around the dice numbers
         r = ResourceManager.DICE_NUMBER_RADIUS

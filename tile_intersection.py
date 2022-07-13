@@ -1,18 +1,20 @@
 
 import pygame
 
-from resource_manager import ResourceManager
 from color import Color
-from construction import Construction
+from construction import ConstructionKind
+from player import Player
+from resource_manager import ResourceManager
 
 # from tile import Tile
 # from tile_path import TilePath
 
 
+
 class TileIntersection:
     # def __init__(self, neighbour_paths: list[TilePath] = None, neighbour_tiles: list[Tile] = None):
     def __init__(self, x: int, y: int, neighbour_paths: list = None, neighbour_tiles: list = None):
-        self.content: tuple[Construction, Color] | None = None  # TODO : Player
+        self.content: tuple[ConstructionKind, Player] | None = None
         self.x = x
         self.y = y
         if neighbour_paths is None:
