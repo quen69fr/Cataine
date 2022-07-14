@@ -18,33 +18,33 @@ from resource import Resource
 class Strategy:
 
     @abstractmethod
-    def play(self, board: Board, player: Player, all_actions: list[list[Action]]) -> list[Action]:
+    def play(self, board: Board, player: Player):
         pass
 
 
-class StrategyChooseRandom(Strategy):
+# class StrategyChooseRandom(Strategy):
 
-    def play(self, board: Board, player: Player, all_actions: list[list[Action]]) -> list[Action]:
-        result = random.choice(all_actions)
-        return result
+#     def play(self, board: Board, player: Player, all_actions: list[list[Action]]) -> list[Action]:
+#         result = random.choice(all_actions)
+#         return result
 
 class StrategyExplorer(Strategy):
 
-    current_objective: list[Action] | None
+    current_objective: list[Action]
 
     def __init__(self):
-        self.current_objective = None
+        self.current_objective = []
 
-    def play(self, board: Board, player: Player, all_actions: list[list[Action]]) -> list[Action]:
-        if self.current_objective is None:
+    def play(self, board: Board, player: Player):
+        if self.current_objective == []:
             actions = self._select_objective(board, player)
             self.current_objective = actions
             print(actions)
 
-        self._do_objective()
+        self._do_objective(player)
 
     def _select_objective(self, board: Board, player: Player):
-        assert self.current_objective is None
+        assert self.current_objective == []
 
         # find where my roads are
         starts = list(find_all_intersection_belonging_to_player(board, player))
@@ -79,7 +79,6 @@ class StrategyExplorer(Strategy):
         m = None
         for inte, d in distances.items():
             if not inte.can_build():
-                print("can't build here")
                 continue
 
             rank[inte] = neighbour_tiles_expectation(inte) - d / 6
@@ -87,7 +86,7 @@ class StrategyExplorer(Strategy):
                 m = inte
 
         if m is None:
-            return None
+            return []
 
         actions: list[Action] = [ActionBuildColony(m, player)]
         curr = m
@@ -101,8 +100,22 @@ class StrategyExplorer(Strategy):
 
         return actions
 
-    def _do_objective(self):
-        raise NotImplemented
+    def _do_objective(self, player: Player):
+        if self.current_objective is None:
+            print('no objective')
+            return
+
+        i = 0
+        for action in self.current_objective:
+            if not action.available():
+                breakpoint()
+            assert action.available()
+            if player.has_specified_resources(action.cost):
+               action.apply()
+               i += 1
+            else:
+                break
+        self.current_objective = self.current_objective[i:]
 
 def find_all_intersection_belonging_to_player(board: Board, player: Player) -> Generator[TileIntersection]:
     for inte in board.intersections:

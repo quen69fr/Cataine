@@ -17,7 +17,7 @@ clock = pygame.time.Clock()
 ResourceManager.load()
 
 game = Game()
-
+pygame.key.set_repeat(250, 100)
 
 def main():
     while True:
