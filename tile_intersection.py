@@ -55,3 +55,9 @@ class TileIntersection:
             for inte in path.intersections:
                 if inte != self:
                     yield path, inte
+
+    def __repr__(self):
+        return f'<TileIntersection {repr(self.neighbour_tiles)}>'
+
+    def __str__(self):
+        return repr(self)

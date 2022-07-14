@@ -19,6 +19,9 @@ ResourceManager.load()
 game = Game()
 pygame.key.set_repeat(250, 100)
 
+for i in range(2000):
+    game.halfturn()
+
 def main():
     while True:
         clock.tick(60)

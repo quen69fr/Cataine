@@ -64,8 +64,6 @@ class StrategyExplorer(Strategy):
             inte = q.pop(0)
             d = distances[inte] + 1
             for path in inte.neighbour_paths:
-                if path.road_player == player:
-                    d = 0
                 for neigh in path.intersections:
                     if not neigh in distances:
                         distances[neigh] = d
@@ -90,7 +88,6 @@ class StrategyExplorer(Strategy):
 
         actions: list[Action] = [ActionBuildColony(m, player)]
         curr = m
-        print(distances[m])
         for i in range(distances[m]):
             for path, inte in curr.neighbour_paths_intersection():
                 if path.road_player is None and distances[inte] == distances[curr] - 1:
@@ -102,7 +99,6 @@ class StrategyExplorer(Strategy):
 
     def _do_objective(self, player: Player):
         if self.current_objective is None:
-            print('no objective')
             return
 
         i = 0
