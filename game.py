@@ -4,7 +4,6 @@ import random
 from enum import Enum
 from resource import (BOARD_LAYOUT_DICE_NUMBERS, BOARD_LAYOUT_RESOURCES,
                       BOARD_PORT_RESOURCES)
-from telnetlib import GA
 
 import pygame
 
@@ -47,16 +46,17 @@ class Game:
 
     def halfturn(self):
         if self.game_state == GameState.PLACING_COLONIES:
+            print("\nplayer:", self.get_current_player())
             self.turn()
             return
 
         if self.halfturn_flag:
+            print("\nplayer:", self.get_current_player())
             self._throw_dice()
         else:
             self._current_player_plays()
             self.turn_number += 1
         self.halfturn_flag = not self.halfturn_flag
-        
 
     def _give_resources_to_players(self, tile: Tile):
         for inte in tile.intersections:
@@ -64,16 +64,16 @@ class Game:
                 continue
 
             if inte.content.kind == ConstructionKind.COLONY:
-                print(f"{inte.content.player} receives 1 {tile.resource}")
+                # print(f"{inte.content.player} receives 1 {tile.resource}")
                 inte.content.player.add_resource_card(tile.resource)
             elif inte.content.kind == ConstructionKind.TOWN:
                 inte.content.player.add_resource_card(tile.resource)
                 inte.content.player.add_resource_card(tile.resource)
-                print(f"{inte.content.player} receives 2 {tile.resource}")
+                # print(f"{inte.content.player} receives 2 {tile.resource}")
 
     def _throw_dice(self):
         r = random.randint(1, 6) + random.randint(1, 6)
-        print("dice result", r)
+        print("Dice result:", r)
         if r == 7:
             # check number of cards
             pass  # TODO
@@ -82,11 +82,14 @@ class Game:
                 if t.dice_number == r:
                     self._give_resources_to_players(t)
 
+    def get_current_player(self):
+        return self.players[self.turn_number % len(self.players)]
+
     def _current_player_plays(self):
-        self.players[self.turn_number % len(self.players)].play()
+        self.get_current_player().play()
 
     def _turn_placing_colonies(self):
-        self.players[self.turn_number % len(self.players)].place_initial_colony()
+        self.get_current_player().place_initial_colony()
 
     def render(self, screen: pygame.Surface):
         self.board.render(40, 40, screen)

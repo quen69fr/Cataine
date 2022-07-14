@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from email.generator import Generator
+from typing import Generator
 from resource import Resource
 from typing import TYPE_CHECKING
 
 import pygame
 
-from actions import Action, ActionBuildRoad
+from actions import Action, ActionBuildRoad, ActionBuildColony, ActionBuildTown
 from color import Color
 from construction import Construction, ConstructionKind
 from probability import get_expectation_of_intersection
@@ -37,14 +37,14 @@ class Player:
         self.strategy = StrategyChooseRandom()
 
     def play(self):
-        print(self, "resources", self.resource_cards)
-        group_actions = self.strategy.play(self.board, self, self.get_all_group_actions())
-        print("selected:", group_actions)
+        all_group_actions = self.get_all_group_actions()
+        print("Number of possibilities:", len(all_group_actions))
+        group_actions = self.strategy.play(self.board, self, all_group_actions)
+        print("Group action selected:", group_actions)
         for action in group_actions:
             action.apply()
 
-    def get_all_group_actions(self) -> list[Action]:
-
+    def get_all_group_actions(self) -> list[list[Action]]:
         def do():
             actions = []
             for action in self.get_all_one_shot_actions():
@@ -57,17 +57,33 @@ class Player:
                 action.undo()
             return actions
 
-        group_actions = do()
-        group_actions.append([])
-        return group_actions
+        groups_actions = do()
+        groups_actions.append([])
+        return groups_actions
 
     def get_all_one_shot_actions(self) -> list[Action]:
         if self.has_specified_resources(ActionBuildRoad.cost):
             yield from self._get_all_one_shot_action_build_road()
+        if self.has_specified_resources(ActionBuildColony.cost):
+            yield from self._get_all_one_shot_action_build_colony()
+        if self.has_specified_resources(ActionBuildTown.cost):
+            yield from self._get_all_one_shot_action_build_town()
 
     def _get_all_one_shot_action_build_road(self) -> Generator[Action]:
         for path in self.board.paths:
             action = ActionBuildRoad(path, self)
+            if action.available():
+                yield action
+
+    def _get_all_one_shot_action_build_colony(self) -> Generator[Action]:
+        for intersection in self.board.intersections:
+            action = ActionBuildColony(intersection, self)
+            if action.available():
+                yield action
+
+    def _get_all_one_shot_action_build_town(self) -> Generator[Action]:
+        for intersection in self.board.intersections:
+            action = ActionBuildTown(intersection, self)
             if action.available():
                 yield action
 

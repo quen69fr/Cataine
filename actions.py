@@ -4,10 +4,12 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from resource import Resource
 from typing import TYPE_CHECKING
+from construction import Construction, ConstructionKind
 
 if TYPE_CHECKING:
     from player import Player
     from tile_path import TilePath
+    from tile_intersection import TileIntersection
 
 
 class Action:
@@ -22,7 +24,8 @@ class Action:
         pass
 
     @abstractmethod
-    def available(self, player: Player):
+    def available(self):
+        # Does not care about the cost
         pass
 
 
@@ -34,7 +37,7 @@ class ActionBuildRoad(Action):
 
     def apply(self):
         if self.path.road_player is not None:
-            raise ValueError("building road on a tile path that already has a tile path")
+            raise ValueError("building road on a tile path that already has a road")
         self.path.road_player = self.player
         self.player.consume_resource_cards(self.cost)
 
@@ -49,8 +52,8 @@ class ActionBuildRoad(Action):
             return False
 
         # check if there is one of our colony/town around it
-        has_own_construction = lambda intersection: intersection.content is not None \
-                                                    and intersection.content.player == self.player
+        def has_own_construction(intersection: TileIntersection):
+            return intersection.content is not None and intersection.content.player == self.player
 
         if has_own_construction(self.path.intersections[0]) or \
                 has_own_construction(self.path.intersections[1]):
@@ -63,3 +66,52 @@ class ActionBuildRoad(Action):
                 return True
 
         return False
+
+
+@dataclass
+class ActionBuildColony(Action):
+    intersection: TileIntersection
+    player: Player
+    cost = {Resource.WOOD: 1, Resource.CLAY: 1, Resource.WOOL: 1, Resource.HAY: 1}
+
+    def apply(self):
+        if self.intersection.content is not None:
+            raise ValueError("building colony on a tile intersection that already has a colony")
+        self.intersection.content = Construction(kind=ConstructionKind.COLONY, player=self.player)
+        self.player.consume_resource_cards(self.cost)
+
+    def undo(self):
+        assert self.intersection.content == Construction(kind=ConstructionKind.COLONY, player=self.player)
+        self.intersection.content = None
+        self.player.add_resource_cards(self.cost)
+
+    def available(self):
+        if not self.intersection.can_build():
+            return False
+
+        # check if there is one of our road around it
+        for p in self.intersection.neighbour_paths:
+            if p.road_player == self.player:
+                return True
+        return False
+
+
+@dataclass
+class ActionBuildTown(Action):
+    intersection: TileIntersection
+    player: Player
+    cost = {Resource.ROCK: 3, Resource.HAY: 2}
+
+    def apply(self):
+        if not self.intersection.content == Construction(kind=ConstructionKind.COLONY, player=self.player):
+            raise ValueError("the town must be build on one of our colony")
+        self.intersection.content = Construction(kind=ConstructionKind.TOWN, player=self.player)
+        self.player.consume_resource_cards(self.cost)
+
+    def undo(self):
+        assert self.intersection.content == Construction(kind=ConstructionKind.TOWN, player=self.player)
+        self.intersection.content = Construction(kind=ConstructionKind.COLONY, player=self.player)
+        self.player.add_resource_cards(self.cost)
+
+    def available(self):
+        return self.intersection.content == Construction(kind=ConstructionKind.COLONY, player=self.player)

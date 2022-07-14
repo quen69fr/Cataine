@@ -26,7 +26,7 @@ class TilePath:
     def render_port(self, x0: int, y0: int, screen: pygame.Surface):
         if self.port is None:
             return
-        img = pygame.transform.rotate(ResourceManager.PORTS[self.port.kind], self.port.direction)
+        img = pygame.transform.rotate(ResourceManager.PORTS[self.port.resource], self.port.direction)
         w, h = img.get_size()
 
         x1, y1 = self.intersections[0].position(x0, y0)

@@ -16,7 +16,7 @@ class Resource(Enum):
 
 @dataclass
 class Port:
-    kind: Resource
+    resource: Resource
     direction: int
 
 

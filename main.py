@@ -1,28 +1,23 @@
 from __future__ import annotations
 
 import random
-from resource import (BOARD_LAYOUT_DICE_NUMBERS, BOARD_LAYOUT_RESOURCES,
-                      BOARD_PORT_RESOURCES)
 
 import pygame
 
-from board import Board
 from game import Game
 from resource_manager import ResourceManager
 
 random.seed(1)
-
 pygame.init()
 
 background = pygame.image.load("images/FondEau.png")
-
 screen = pygame.display.set_mode(background.get_size())
-
 clock = pygame.time.Clock()
 
 ResourceManager.load()
 
 game = Game()
+
 
 def main():
     while True:

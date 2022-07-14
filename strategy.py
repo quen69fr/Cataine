@@ -14,12 +14,12 @@ if TYPE_CHECKING:
 class Strategy:
 
     @abstractmethod
-    def play(self, board: Board, player: Player, all_actions: list[Action]) -> list[Action]:
+    def play(self, board: Board, player: Player, all_actions: list[list[Action]]) -> list[Action]:
         pass
+
 
 class StrategyChooseRandom(Strategy):
 
-    def play(self, board: Board, player: Player, all_actions: list[Action]) -> list[Action]:
+    def play(self, board: Board, player: Player, all_actions: list[list[Action]]) -> list[Action]:
         result = random.choice(all_actions)
         return result
-        
