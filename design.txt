@@ -141,3 +141,14 @@ class SubStrategyPlacementBasic:
 - composants
     - rank each action
         - rank each position for a colony
+
+
+
+
+ExplorerStrategy:
+
+    current_objective
+    play
+
+    ObjectiveBuildNewColony:
+

@@ -49,3 +49,9 @@ class TileIntersection:
                 if t.content is not None:
                     return False
         return True
+
+    def neighbour_paths_intersection(self):
+        for path in self.neighbour_paths:
+            for inte in path.intersections:
+                if inte != self:
+                    yield path, inte

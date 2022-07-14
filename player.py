@@ -11,7 +11,7 @@ from color import Color
 from construction import Construction, ConstructionKind
 from probability import get_expectation_of_intersection
 from render_text import render_text
-from strategy import StrategyChooseRandom
+from strategy import StrategyChooseRandom, StrategyExplorer
 from tile_intersection import TileIntersection
 
 if TYPE_CHECKING:
@@ -34,7 +34,7 @@ class Player:
         }
         # self.dev_cards: list[DevCards] = []
         self.board = board
-        self.strategy = StrategyChooseRandom()
+        self.strategy = StrategyExplorer()
 
     def play(self):
         all_group_actions = self.get_all_group_actions()

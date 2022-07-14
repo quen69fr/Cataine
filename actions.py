@@ -104,7 +104,7 @@ class ActionBuildTown(Action):
 
     def apply(self):
         if not self.intersection.content == Construction(kind=ConstructionKind.COLONY, player=self.player):
-            raise ValueError("the town must be build on one of our colony")
+            raise ValueError("the town must be built on one of our colony")
         self.intersection.content = Construction(kind=ConstructionKind.TOWN, player=self.player)
         self.player.consume_resource_cards(self.cost)
 
