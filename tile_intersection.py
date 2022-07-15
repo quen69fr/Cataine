@@ -6,6 +6,8 @@ import pygame
 
 from construction import Construction
 from resource_manager import ResourceManager
+from probability import get_expectation_of_intersection
+from resource import Resource
 
 if TYPE_CHECKING:
     from tile import Tile
@@ -49,6 +51,10 @@ class TileIntersection:
                 if t.content is not None:
                     return False
         return True
+
+    def neighbour_tiles_expectation(self):
+        return get_expectation_of_intersection(
+            t.dice_number for t in self.neighbour_tiles if t.resource != Resource.DESERT)
 
     def neighbour_paths_intersection(self):
         for path in self.neighbour_paths:

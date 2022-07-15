@@ -28,31 +28,24 @@ class Strategy:
 #         result = random.choice(all_actions)
 #         return result
 
-class StrategyExplorer(Strategy):
+class ObjectiveBuildColony:
 
-    current_objective: list[Action]
+    def __init__(self, board: Board, player: Player) -> None:
+        self.board = board
+        self.player = player
 
-    def __init__(self):
-        self.current_objective = []
+        self.actions = []
+        self.cost = None
+        self.gain = None
 
-    def play(self, board: Board, player: Player):
-        if self.current_objective == []:
-            actions = self._select_objective(board, player)
-            self.current_objective = actions
-            print(actions)
-
-        self._do_objective(player)
-
-    def _select_objective(self, board: Board, player: Player):
-        assert self.current_objective == []
-
+    def do(self):
         # find where my roads are
-        starts = list(find_all_intersection_belonging_to_player(board, player))
+        starts = list(self.player.find_all_intersection_belonging_to_player(self.board))
         distances: dict[TileIntersection, int] = {}
         for start in starts:
             distances[start] = 0
 
-        for path in find_all_path_belonging_to_player(board, player):
+        for path in self.player.find_all_path_belonging_to_player(self.board):
             if path.intersections[0] not in starts:
                 starts.append(path.intersections[0])
             if path.intersections[1] not in starts:
@@ -79,23 +72,54 @@ class StrategyExplorer(Strategy):
             if not inte.can_build():
                 continue
 
-            rank[inte] = neighbour_tiles_expectation(inte) - d / 6
+            rank[inte] = inte.neighbour_tiles_expectation() - d / 6
             if m is None or rank[inte] > rank[m]:
                 m = inte
 
         if m is None:
             return []
 
-        actions: list[Action] = [ActionBuildColony(m, player)]
+        actions: list[Action] = [ActionBuildColony(m, self.player)]
         curr = m
+        cost = []
         for i in range(distances[m]):
             for path, inte in curr.neighbour_paths_intersection():
                 if path.road_player is None and distances[inte] == distances[curr] - 1:
-                    actions.insert(0, ActionBuildRoad(path, player))
+                    actions.insert(0, ActionBuildRoad(path, self.player))
                     curr = inte
                     break
 
-        return actions
+        # build list of required cards - current hand
+        # max of the inverse probabilities for each card = number of turns to be able to complete the objective = n
+        # after n turns, estimate our hand = hand', do hand' - required cards
+        # convert that into a number
+
+
+        self.actions = actions
+        self.cost = cost
+        # self.gain = gain
+
+class StrategyExplorer(Strategy):
+
+    current_objective: list[Action]
+
+    def __init__(self):
+        self.current_objective = []
+
+    def play(self, board: Board, player: Player):
+        if self.current_objective == []:
+            actions = self._select_objective(board, player)
+            self.current_objective = actions
+            print(actions)
+
+        self._do_objective(player)
+
+    def _select_objective(self, board: Board, player: Player) -> list[Action]:
+        assert self.current_objective == []
+        o = ObjectiveBuildColony(board, player)
+        o.do()
+        return o.actions
+
 
     def _do_objective(self, player: Player):
         if self.current_objective is None:
@@ -113,17 +137,4 @@ class StrategyExplorer(Strategy):
                 break
         self.current_objective = self.current_objective[i:]
 
-def find_all_intersection_belonging_to_player(board: Board, player: Player) -> Generator[TileIntersection]:
-    for inte in board.intersections:
-        if inte.content is not None and inte.content.player == player:
-            yield inte
-
-def find_all_path_belonging_to_player(board: Board, player: Player) -> Generator[TilePath]:
-    for path in board.paths:
-        if path.road_player == player:
-            yield path
-
-def neighbour_tiles_expectation(intersection: TileIntersection):
-    return get_expectation_of_intersection(
-        t.dice_number for t in intersection.neighbour_tiles if t.resource != Resource.DESERT)
 

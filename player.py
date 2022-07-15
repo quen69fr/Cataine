@@ -13,6 +13,7 @@ from probability import get_expectation_of_intersection
 from render_text import render_text
 from strategy import StrategyExplorer
 from tile_intersection import TileIntersection
+from tile_path import TilePath
 
 if TYPE_CHECKING:
     from board import Board
@@ -116,6 +117,17 @@ class Player:
     def add_resource_cards(self, cost: dict[Resource, int]):
         for res, count in cost.items():
             self.resource_cards[res] += count
+
+    def find_all_intersection_belonging_to_player(self, board: Board) -> Generator[TileIntersection]:
+        for inte in board.intersections:
+            if inte.content is not None and inte.content.player == self:
+                yield inte
+
+    def find_all_path_belonging_to_player(self, board: Board) -> Generator[TilePath]:
+        for path in board.paths:
+            if path.road_player == self:
+                yield path
+
 
     def __repr__(self):
         return f"<Player {self.color.name}>"
