@@ -73,7 +73,9 @@ class ObjectiveBuildColony:
             if not inte.can_build():
                 continue
 
-            gain = 200 * inte.neighbour_tiles_expectation()
+            gain = 6 * inte.neighbour_tiles_expectation()
+            gain = 100 * gain ** 10
+            # gain = 0
             cost = ResourceHandCount()
             cost.add(ActionBuildColony.cost)
             for _ in range(d):

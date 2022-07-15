@@ -28,7 +28,7 @@ class Game:
         self.board = Board(BOARD_LAYOUT_RESOURCES, BOARD_LAYOUT_DICE_NUMBERS, BOARD_PORT_RESOURCES)
         self.players = [
             Player(Color.RED, self.board),
-            Player(Color.BLUE, self.board)
+            # Player(Color.BLUE, self.board)
         ]
         self.turn_number = 0
         self.halfturn_flag = True

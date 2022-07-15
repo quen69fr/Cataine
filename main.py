@@ -17,10 +17,10 @@ clock = pygame.time.Clock()
 ResourceManager.load()
 
 game = Game()
-pygame.key.set_repeat(250, 100)
+pygame.key.set_repeat(250, 10)
 
-for _ in range(100):
-    game.halfturn()
+# for _ in range(100):
+#     game.halfturn()
 
 def main():
     while True:
