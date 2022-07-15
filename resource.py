@@ -47,12 +47,11 @@ class ResourceHandCount(dict):
         for res, count in cost.items():
             self[res] += count
 
-
     def subtract_fine_if_not_present(self, cost: ResourceHandCount):
         for res in cost.keys():
             self[res] = max(0, self[res] - cost[res])
 
-    def copy(self):
+    def copy(self) -> ResourceHandCount:
         return ResourceHandCount(self)
 
     def __iter__(self):

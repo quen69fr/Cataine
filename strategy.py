@@ -1,20 +1,17 @@
 from __future__ import annotations
-from math import exp, prod
 
-import random
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Generator
+from typing import TYPE_CHECKING
 
 from actions import Action, ActionBuildColony, ActionBuildRoad
 from board import Board
-from tile import Tile
 from tile_intersection import TileIntersection
 
 if TYPE_CHECKING:
     from player import Player
 
-from probability import get_expectation_of_intersection, get_probability_to_roll
 from resource import Resource, ResourceHandCount
+
 
 class Strategy:
 
@@ -36,8 +33,7 @@ class ObjectiveBuildColony:
         self.player = player
 
         self.actions = []
-        self.cost = None
-        self.gain = None
+        self.mark = None
 
     def do(self):
         # find where my roads are
@@ -59,10 +55,9 @@ class ObjectiveBuildColony:
             d = distances[inte] + 1
             for path in inte.neighbour_paths:
                 for neigh in path.intersections:
-                    if not neigh in distances:
+                    if neigh not in distances:
                         distances[neigh] = d
                         q.append(neigh)
-
 
         # rank all intersections
         # select the best one and do it
@@ -99,9 +94,9 @@ class ObjectiveBuildColony:
                     curr = inte
                     break
 
-
         self.actions = actions
-        self.mark = None
+        self.mark = rank[m]
+
 
 def mark_objective(player: Player, cost_no_modify: ResourceHandCount, initial_gain: float) -> float:
     cost = cost_no_modify.copy()
@@ -119,7 +114,6 @@ def mark_objective(player: Player, cost_no_modify: ResourceHandCount, initial_ga
     # after n turns, estimate our hand = hand', do hand' - required cards
     # convert that into a number
 
-
     # add cards in the current hand
     hand_after_cost_num_turns: dict[Resource, float] = {}
     for res, count in player.resource_cards.items():
@@ -128,7 +122,6 @@ def mark_objective(player: Player, cost_no_modify: ResourceHandCount, initial_ga
     # predict cards and add to future hands
     for res, expectation in player.get_resource_production_expectation_without_exchange().items():
         hand_after_cost_num_turns[res] += expectation * cost_num_turns
-
 
     # remove all resources that will be used by this objective
     for res, count in required_cards.items():
@@ -140,15 +133,15 @@ def mark_objective(player: Player, cost_no_modify: ResourceHandCount, initial_ga
         gain += count * prod_turns[res]
     return gain / (cost_num_turns + 1)
 
-class StrategyExplorer(Strategy):
 
+class StrategyExplorer(Strategy):
     current_objective: list[Action]
 
     def __init__(self):
         self.current_objective = []
 
     def play(self, board: Board, player: Player):
-        if self.current_objective == []:
+        if not self.current_objective:
             actions = self._select_objective(board, player)
             self.current_objective = actions
 
@@ -160,7 +153,6 @@ class StrategyExplorer(Strategy):
         o.do()
         return o.actions
 
-
     def _do_objective(self, player: Player):
         if self.current_objective is None:
             return
@@ -171,10 +163,8 @@ class StrategyExplorer(Strategy):
                 breakpoint()
             assert action.available()
             if player.resource_cards.has(action.cost):
-               action.apply()
-               i += 1
+                action.apply()
+                i += 1
             else:
                 break
         self.current_objective = self.current_objective[i:]
-
-
