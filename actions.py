@@ -39,12 +39,12 @@ class ActionBuildRoad(Action):
         if self.path.road_player is not None:
             raise ValueError("building road on a tile path that already has a road")
         self.path.road_player = self.player
-        self.player.consume_resource_cards(self.cost)
+        self.player.resource_cards.consume(self.cost)
 
     def undo(self):
         assert self.path.road_player == self.player
         self.path.road_player = None
-        self.player.add_resource_cards(self.cost)
+        self.player.resource_cards.add(self.cost)
 
     def available(self):
         # path is occupied
@@ -78,12 +78,12 @@ class ActionBuildColony(Action):
         if self.intersection.content is not None:
             raise ValueError("building colony on a tile intersection that already has a colony")
         self.intersection.content = Construction(kind=ConstructionKind.COLONY, player=self.player)
-        self.player.consume_resource_cards(self.cost)
+        self.player.resource_cards.consume(self.cost)
 
     def undo(self):
         assert self.intersection.content == Construction(kind=ConstructionKind.COLONY, player=self.player)
         self.intersection.content = None
-        self.player.add_resource_cards(self.cost)
+        self.player.resource_cards.add(self.cost)
 
     def available(self):
         if not self.intersection.can_build():
@@ -106,12 +106,12 @@ class ActionBuildTown(Action):
         if not self.intersection.content == Construction(kind=ConstructionKind.COLONY, player=self.player):
             raise ValueError("the town must be built on one of our colony")
         self.intersection.content = Construction(kind=ConstructionKind.TOWN, player=self.player)
-        self.player.consume_resource_cards(self.cost)
+        self.player.resource_cards.consume(self.cost)
 
     def undo(self):
         assert self.intersection.content == Construction(kind=ConstructionKind.TOWN, player=self.player)
         self.intersection.content = Construction(kind=ConstructionKind.COLONY, player=self.player)
-        self.player.add_resource_cards(self.cost)
+        self.player.resource_cards.add(self.cost)
 
     def available(self):
         return self.intersection.content == Construction(kind=ConstructionKind.COLONY, player=self.player)

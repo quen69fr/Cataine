@@ -19,7 +19,7 @@ ResourceManager.load()
 game = Game()
 pygame.key.set_repeat(250, 100)
 
-for i in range(2000):
+for _ in range(100):
     game.halfturn()
 
 def main():

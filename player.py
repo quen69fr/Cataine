@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Generator
-from resource import Resource
+from resource import Resource, ResourceHandCount
 from typing import TYPE_CHECKING
 
 import pygame
@@ -9,7 +9,7 @@ import pygame
 from actions import Action, ActionBuildRoad, ActionBuildColony, ActionBuildTown
 from color import Color
 from construction import Construction, ConstructionKind
-from probability import get_expectation_of_intersection
+from probability import get_expectation_of_intersection, get_probability_to_roll
 from render_text import render_text
 from strategy import StrategyExplorer
 from tile_intersection import TileIntersection
@@ -21,18 +21,12 @@ if TYPE_CHECKING:
 
 class Player:
     color: Color
-    resource_cards: list[Resource]
+    resource_cards: ResourceHandCount
     board: Board
 
     def __init__(self, color: Color, board: Board):
         self.color = color
-        self.resource_cards: dict[Resource, int] = {
-            Resource.CLAY: 0,
-            Resource.WOOD: 0,
-            Resource.WOOL: 0,
-            Resource.HAY: 0,
-            Resource.ROCK: 0
-        }
+        self.resource_cards = ResourceHandCount()
         # self.dev_cards: list[DevCards] = []
         self.board = board
         self.strategy = StrategyExplorer()
@@ -63,27 +57,27 @@ class Player:
         groups_actions.append([])
         return groups_actions
 
-    def get_all_one_shot_actions(self) -> list[Action]:
-        if self.has_specified_resources(ActionBuildRoad.cost):
+    def get_all_one_shot_actions(self) -> Generator[Action, None, None]:
+        if self.resource_cards.has(ActionBuildRoad.cost):
             yield from self._get_all_one_shot_action_build_road()
-        if self.has_specified_resources(ActionBuildColony.cost):
+        if self.resource_cards.has(ActionBuildColony.cost):
             yield from self._get_all_one_shot_action_build_colony()
-        if self.has_specified_resources(ActionBuildTown.cost):
+        if self.resource_cards.has(ActionBuildTown.cost):
             yield from self._get_all_one_shot_action_build_town()
 
-    def _get_all_one_shot_action_build_road(self) -> Generator[Action]:
+    def _get_all_one_shot_action_build_road(self) -> Generator[Action, None, None]:
         for path in self.board.paths:
             action = ActionBuildRoad(path, self)
             if action.available():
                 yield action
 
-    def _get_all_one_shot_action_build_colony(self) -> Generator[Action]:
+    def _get_all_one_shot_action_build_colony(self) -> Generator[Action, None, None]:
         for intersection in self.board.intersections:
             action = ActionBuildColony(intersection, self)
             if action.available():
                 yield action
 
-    def _get_all_one_shot_action_build_town(self) -> Generator[Action]:
+    def _get_all_one_shot_action_build_town(self) -> Generator[Action, None, None]:
         for intersection in self.board.intersections:
             action = ActionBuildTown(intersection, self)
             if action.available():
@@ -100,34 +94,51 @@ class Player:
         assert best.content is None
         best.content = Construction(kind=ConstructionKind.COLONY, player=self)
 
-    def add_resource_card(self, res: Resource):
-        self.resource_cards[res] += 1
-
-    def has_specified_resources(self, res: dict[Resource, int]):
-        for res, count in res.items():
-            if self.resource_cards[res] < count:
-                return False
-        return True
-
-    def consume_resource_cards(self, cost: dict[Resource, int]):
-        for res, count in cost.items():
-            self.resource_cards[res] -= count
-            assert self.resource_cards[res] >= 0
-
-    def add_resource_cards(self, cost: dict[Resource, int]):
-        for res, count in cost.items():
-            self.resource_cards[res] += count
-
-    def find_all_intersection_belonging_to_player(self, board: Board) -> Generator[TileIntersection]:
-        for inte in board.intersections:
+    def find_all_intersection_belonging_to_player(self) -> Generator[TileIntersection, None, None]:
+        for inte in self.board.intersections:
             if inte.content is not None and inte.content.player == self:
                 yield inte
 
-    def find_all_path_belonging_to_player(self, board: Board) -> Generator[TilePath]:
-        for path in board.paths:
+    def find_all_path_belonging_to_player(self) -> Generator[TilePath, None, None]:
+        for path in self.board.paths:
             if path.road_player == self:
                 yield path
 
+    def get_resource_production_expectation_without_exchange(self):
+        """ resource -> number of that resource per turn """
+        prod: dict[Resource, float] = {
+            Resource.CLAY: 0,
+            Resource.WOOD: 0,
+            Resource.WOOL: 0,
+            Resource.HAY: 0,
+            Resource.ROCK: 0
+        }
+
+        for inte in self.find_all_intersection_belonging_to_player():
+            assert inte.content is not None
+            if inte.content.kind == ConstructionKind.COLONY:
+                c = 1
+            else:
+                c = 2
+            for tile in inte.neighbour_tiles:
+                if tile.resource == Resource.DESERT:
+                    continue
+                prod[tile.resource] += get_probability_to_roll(tile.dice_number) * c
+
+        return prod
+
+    def get_resource_production_in_number_of_turns_with_systematic_exchange(self):
+        """ resource -> number of turns """
+        prod_turns = {}
+        prod = self.get_resource_production_expectation_without_exchange()
+        min_number_of_turns_with_exchange = 4 / max(prod.values())
+        for res, proba in prod.items():
+            if proba == 0:
+                prod_turns[res] = min_number_of_turns_with_exchange
+            else:
+                prod_turns[res] = min(1/proba, min_number_of_turns_with_exchange)
+
+        return prod_turns
 
     def __repr__(self):
         return f"<Player {self.color.name}>"

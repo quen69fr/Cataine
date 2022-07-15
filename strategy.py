@@ -1,4 +1,5 @@
 from __future__ import annotations
+from math import exp, prod
 
 import random
 from abc import abstractmethod
@@ -12,8 +13,8 @@ from tile_intersection import TileIntersection
 if TYPE_CHECKING:
     from player import Player
 
-from probability import get_expectation_of_intersection
-from resource import Resource
+from probability import get_expectation_of_intersection, get_probability_to_roll
+from resource import Resource, ResourceHandCount
 
 class Strategy:
 
@@ -40,17 +41,17 @@ class ObjectiveBuildColony:
 
     def do(self):
         # find where my roads are
-        starts = list(self.player.find_all_intersection_belonging_to_player(self.board))
+        starts = list(self.player.find_all_intersection_belonging_to_player())
         distances: dict[TileIntersection, int] = {}
-        for start in starts:
-            distances[start] = 0
 
-        for path in self.player.find_all_path_belonging_to_player(self.board):
+        for path in self.player.find_all_path_belonging_to_player():
             if path.intersections[0] not in starts:
                 starts.append(path.intersections[0])
             if path.intersections[1] not in starts:
                 starts.append(path.intersections[1])
 
+        for start in starts:
+            distances[start] = 0
 
         q = starts
         while q:
@@ -72,32 +73,70 @@ class ObjectiveBuildColony:
             if not inte.can_build():
                 continue
 
-            rank[inte] = inte.neighbour_tiles_expectation() - d / 6
+            gain = 200 * inte.neighbour_tiles_expectation()
+            cost = ResourceHandCount()
+            cost.add(ActionBuildColony.cost)
+            for _ in range(d):
+                cost.add(ActionBuildRoad.cost)
+
+            rank[inte] = mark_objective(self.player, cost, gain)
             if m is None or rank[inte] > rank[m]:
                 m = inte
-
         if m is None:
             return []
 
         actions: list[Action] = [ActionBuildColony(m, self.player)]
         curr = m
-        cost = []
+        cost = ResourceHandCount()
+        cost.add(ActionBuildColony.cost)
         for i in range(distances[m]):
             for path, inte in curr.neighbour_paths_intersection():
                 if path.road_player is None and distances[inte] == distances[curr] - 1:
                     actions.insert(0, ActionBuildRoad(path, self.player))
+                    cost.add(ActionBuildRoad.cost)
                     curr = inte
                     break
 
-        # build list of required cards - current hand
-        # max of the inverse probabilities for each card = number of turns to be able to complete the objective = n
-        # after n turns, estimate our hand = hand', do hand' - required cards
-        # convert that into a number
-
 
         self.actions = actions
-        self.cost = cost
-        # self.gain = gain
+        self.mark = None
+
+def mark_objective(player: Player, cost_no_modify: ResourceHandCount, initial_gain: float) -> float:
+    cost = cost_no_modify.copy()
+    required_cards = cost.copy()
+
+    # breakpoint()
+
+    prod_turns = player.get_resource_production_in_number_of_turns_with_systematic_exchange()
+
+    cost.subtract_fine_if_not_present(player.resource_cards)
+    cost_num_turns = max(num * prod_turns[res] for res, num in cost.items())
+
+    # build list of required cards - current hand
+    # max of the inverse probabilities for each card = number of turns to be able to complete the objective = n
+    # after n turns, estimate our hand = hand', do hand' - required cards
+    # convert that into a number
+
+
+    # add cards in the current hand
+    hand_after_cost_num_turns: dict[Resource, float] = {}
+    for res, count in player.resource_cards.items():
+        hand_after_cost_num_turns[res] = count
+
+    # predict cards and add to future hands
+    for res, expectation in player.get_resource_production_expectation_without_exchange().items():
+        hand_after_cost_num_turns[res] += expectation * cost_num_turns
+
+
+    # remove all resources that will be used by this objective
+    for res, count in required_cards.items():
+        hand_after_cost_num_turns[res] -= count
+        # assert hand_after_cost_num_turns[res] >= 0
+
+    gain = initial_gain
+    for res, count in hand_after_cost_num_turns.items():
+        gain += count * prod_turns[res]
+    return gain / (cost_num_turns + 1)
 
 class StrategyExplorer(Strategy):
 
@@ -110,7 +149,6 @@ class StrategyExplorer(Strategy):
         if self.current_objective == []:
             actions = self._select_objective(board, player)
             self.current_objective = actions
-            print(actions)
 
         self._do_objective(player)
 
@@ -130,7 +168,7 @@ class StrategyExplorer(Strategy):
             if not action.available():
                 breakpoint()
             assert action.available()
-            if player.has_specified_resources(action.cost):
+            if player.resource_cards.has(action.cost):
                action.apply()
                i += 1
             else:

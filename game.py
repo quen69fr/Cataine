@@ -11,6 +11,7 @@ from board import Board
 from color import Color
 from construction import ConstructionKind
 from player import Player
+from render_text import render_text
 from tile import Tile
 
 
@@ -65,10 +66,10 @@ class Game:
 
             if inte.content.kind == ConstructionKind.COLONY:
                 # print(f"{inte.content.player} receives 1 {tile.resource}")
-                inte.content.player.add_resource_card(tile.resource)
+                inte.content.player.resource_cards.add_one(tile.resource)
             elif inte.content.kind == ConstructionKind.TOWN:
-                inte.content.player.add_resource_card(tile.resource)
-                inte.content.player.add_resource_card(tile.resource)
+                inte.content.player.resource_cards.add_one(tile.resource)
+                inte.content.player.resource_cards.add_one(tile.resource)
                 # print(f"{inte.content.player} receives 2 {tile.resource}")
 
     def _throw_dice(self):
@@ -95,3 +96,5 @@ class Game:
         self.board.render(40, 40, screen)
         for i, player in enumerate(self.players):
             player.render(screen, 800 + 250 * (i // 2), 50 + 300 * (i % 2), self.turn_number % len(self.players) == i)
+
+        render_text(screen, f"turn number: {self.turn_number}", 0, 0, 20, 0, False, None)

@@ -14,6 +14,51 @@ class Resource(Enum):
     P_3_FOR_1 = 6
 
 
+class ResourceHandCount(dict):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if Resource.CLAY not in self:
+            self[Resource.CLAY] = 0
+        if Resource.WOOD not in self:
+            self[Resource.WOOD] = 0
+        if Resource.WOOL not in self:
+            self[Resource.WOOL] = 0
+        if Resource.HAY not in self:
+            self[Resource.HAY] = 0
+        if Resource.ROCK not in self:
+            self[Resource.ROCK] = 0
+
+    def add_one(self, res: Resource):
+        self[res] += 1
+
+    def has(self, cost: ResourceHandCount):
+        for res, count in cost.items():
+            if self[res] < count:
+                return False
+        return True
+
+    def consume(self, cost: ResourceHandCount):
+        for res, count in cost.items():
+            self[res] -= count
+            assert self[res] >= 0
+
+    def add(self, cost: ResourceHandCount):
+        for res, count in cost.items():
+            self[res] += count
+
+
+    def subtract_fine_if_not_present(self, cost: ResourceHandCount):
+        for res in cost.keys():
+            self[res] = max(0, self[res] - cost[res])
+
+    def copy(self):
+        return ResourceHandCount(self)
+
+    def __iter__(self):
+        return self.items().__iter__()
+
+
 @dataclass
 class Port:
     resource: Resource
@@ -41,7 +86,7 @@ BOARD_LAYOUT_RESOURCES = [
     Resource.WOOL,
     Resource.CLAY
 ]
-BOARD_LAYOUT_DICE_NUMBERS = [6, 3, 8, 2, 4, 5, 10, 5, 9, 0, 6, 9, 10, 11, 3, 12, 8, 4, 11]
+BOARD_LAYOUT_DICE_NUMBERS = [6, 3, 8, 2, 4, 5, 10, 5, 9, 0, 6, 9, 10, 11, 3, 12, 8, 6, 11]
 
 BOARD_PORT_RESOURCES = [
     Resource.P_3_FOR_1,
