@@ -99,6 +99,11 @@ class Player:
             if inte.content is not None and inte.content.player == self:
                 yield inte
 
+    def find_all_colonies_belonging_to_player(self) -> Generator[TileIntersection, None, None]:
+        for inte in self.board.intersections:
+            if inte.content == Construction(ConstructionKind.COLONY, self):
+                yield inte
+
     def find_all_path_belonging_to_player(self) -> Generator[TilePath, None, None]:
         for path in self.board.paths:
             if path.road_player == self:

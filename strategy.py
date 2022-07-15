@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import TYPE_CHECKING
 
-from actions import Action, ActionBuildColony, ActionBuildRoad
+from actions import Action, ActionBuildColony, ActionBuildRoad, ActionBuildTown
 from board import Board
 from tile_intersection import TileIntersection
 
@@ -26,8 +26,7 @@ class Strategy:
 #         result = random.choice(all_actions)
 #         return result
 
-class ObjectiveBuildColony:
-
+class Objective:
     def __init__(self, board: Board, player: Player) -> None:
         self.board = board
         self.player = player
@@ -35,6 +34,11 @@ class ObjectiveBuildColony:
         self.actions = []
         self.mark = None
 
+    @abstractmethod
+    def do(self):
+        pass
+
+class ObjectiveBuildColony(Objective):
     def do(self):
         # find where my roads are
         starts = list(self.player.find_all_intersection_belonging_to_player())
@@ -84,17 +88,34 @@ class ObjectiveBuildColony:
 
         actions: list[Action] = [ActionBuildColony(m, self.player)]
         curr = m
-        cost = ResourceHandCount()
-        cost.add(ActionBuildColony.cost)
         for i in range(distances[m]):
             for path, inte in curr.neighbour_paths_intersection():
                 if path.road_player is None and distances[inte] == distances[curr] - 1:
                     actions.insert(0, ActionBuildRoad(path, self.player))
-                    cost.add(ActionBuildRoad.cost)
                     curr = inte
                     break
 
         self.actions = actions
+        self.mark = rank[m]
+
+
+class ObjectiveBuildTown(Objective):
+    def do(self):
+        rank: dict[TileIntersection, float] = {}
+        m = None
+        for inte in self.player.find_all_colonies_belonging_to_player():
+            gain = 6 * inte.neighbour_tiles_expectation()
+            gain = 100 * gain ** 10
+            cost = ResourceHandCount()
+            cost.add(ActionBuildColony.cost)
+
+            rank[inte] = mark_objective(self.player, cost, gain)
+            if m is None or rank[inte] > rank[m]:
+                m = inte
+        if m is None:
+            return []
+
+        self.actions = [ActionBuildTown(m, self.player)]
         self.mark = rank[m]
 
 
@@ -149,9 +170,17 @@ class StrategyExplorer(Strategy):
 
     def _select_objective(self, board: Board, player: Player) -> list[Action]:
         assert self.current_objective == []
-        o = ObjectiveBuildColony(board, player)
-        o.do()
-        return o.actions
+        objs = [ObjectiveBuildColony(board, player), ObjectiveBuildTown(board, player)]
+        best_obj: Objective | None = None
+        for obj in objs:
+            obj.do()
+            if not obj.actions:
+                continue
+            if best_obj is None or best_obj.mark < obj.mark:
+                best_obj = obj
+        if best_obj is None:
+            return []
+        return best_obj.actions
 
     def _do_objective(self, player: Player):
         if self.current_objective is None:

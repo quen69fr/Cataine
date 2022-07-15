@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from resource import Resource
 from typing import TYPE_CHECKING
 from construction import Construction, ConstructionKind
+from resource import ResourceHandCount
 
 if TYPE_CHECKING:
     from player import Player
@@ -13,7 +14,7 @@ if TYPE_CHECKING:
 
 
 class Action:
-    cost: dict[Resource, int]
+    cost: ResourceHandCount
 
     @abstractmethod
     def apply(self):
@@ -33,7 +34,7 @@ class Action:
 class ActionBuildRoad(Action):
     path: TilePath
     player: Player
-    cost = {Resource.WOOD: 1, Resource.CLAY: 1}
+    cost = ResourceHandCount({Resource.WOOD: 1, Resource.CLAY: 1})
 
     def apply(self):
         if self.path.road_player is not None:
@@ -72,7 +73,7 @@ class ActionBuildRoad(Action):
 class ActionBuildColony(Action):
     intersection: TileIntersection
     player: Player
-    cost = {Resource.WOOD: 1, Resource.CLAY: 1, Resource.WOOL: 1, Resource.HAY: 1}
+    cost = ResourceHandCount({Resource.WOOD: 1, Resource.CLAY: 1, Resource.WOOL: 1, Resource.HAY: 1})
 
     def apply(self):
         if self.intersection.content is not None:
@@ -100,7 +101,7 @@ class ActionBuildColony(Action):
 class ActionBuildTown(Action):
     intersection: TileIntersection
     player: Player
-    cost = {Resource.ROCK: 3, Resource.HAY: 2}
+    cost = ResourceHandCount({Resource.ROCK: 3, Resource.HAY: 2})
 
     def apply(self):
         if not self.intersection.content == Construction(kind=ConstructionKind.COLONY, player=self.player):
