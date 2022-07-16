@@ -38,6 +38,7 @@ class Objective:
     def do(self):
         pass
 
+
 class ObjectiveBuildColony(Objective):
     def do(self):
         # find where my roads are
@@ -73,8 +74,6 @@ class ObjectiveBuildColony(Objective):
                 continue
 
             gain = 6 * inte.neighbour_tiles_expectation()
-            gain = 100 * gain ** 10
-            # gain = 0
             cost = ResourceHandCount()
             cost.add(ActionBuildColony.cost)
             for _ in range(d):
@@ -105,10 +104,8 @@ class ObjectiveBuildTown(Objective):
         m = None
         for inte in self.player.find_all_colonies_belonging_to_player():
             gain = 6 * inte.neighbour_tiles_expectation()
-            gain = 100 * gain ** 10
             cost = ResourceHandCount()
-            cost.add(ActionBuildColony.cost)
-
+            cost.add(ActionBuildTown.cost)
             rank[inte] = mark_objective(self.player, cost, gain)
             if m is None or rank[inte] > rank[m]:
                 m = inte
@@ -126,7 +123,6 @@ def mark_objective(player: Player, cost_no_modify: ResourceHandCount, initial_ga
     # breakpoint()
 
     prod_turns = player.get_resource_production_in_number_of_turns_with_systematic_exchange()
-
     cost.subtract_fine_if_not_present(player.resource_cards)
     cost_num_turns = max(num * prod_turns[res] for res, num in cost.items())
 
@@ -149,51 +145,35 @@ def mark_objective(player: Player, cost_no_modify: ResourceHandCount, initial_ga
         hand_after_cost_num_turns[res] -= count
         # assert hand_after_cost_num_turns[res] >= 0
 
-    gain = initial_gain
+    gain = 200 * initial_gain
     for res, count in hand_after_cost_num_turns.items():
         gain += count * prod_turns[res]
     return gain / (cost_num_turns + 1)
 
 
 class StrategyExplorer(Strategy):
-    current_objective: list[Action]
-
-    def __init__(self):
-        self.current_objective = []
-
     def play(self, board: Board, player: Player):
-        if not self.current_objective:
-            actions = self._select_objective(board, player)
-            self.current_objective = actions
+        actions = self._get_objective(board, player)
+        while actions:
+            for action in actions:
+                assert action.available()
+                if player.resource_cards.has(action.cost):
+                    action.apply()
+                else:
+                    return
+            actions = self._get_objective(board, player)
 
-        self._do_objective(player)
-
-    def _select_objective(self, board: Board, player: Player) -> list[Action]:
-        assert self.current_objective == []
+    def _get_objective(self, board: Board, player: Player) -> list[Action]:
         objs = [ObjectiveBuildColony(board, player), ObjectiveBuildTown(board, player)]
+        # objs = [ObjectiveBuildColony(board, player)]
         best_obj: Objective | None = None
         for obj in objs:
             obj.do()
             if not obj.actions:
                 continue
+            print(obj.mark, obj)
             if best_obj is None or best_obj.mark < obj.mark:
                 best_obj = obj
         if best_obj is None:
             return []
         return best_obj.actions
-
-    def _do_objective(self, player: Player):
-        if self.current_objective is None:
-            return
-
-        i = 0
-        for action in self.current_objective:
-            if not action.available():
-                breakpoint()
-            assert action.available()
-            if player.resource_cards.has(action.cost):
-                action.apply()
-                i += 1
-            else:
-                break
-        self.current_objective = self.current_objective[i:]
