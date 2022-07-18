@@ -29,10 +29,10 @@ class Player:
         self.resource_cards = ResourceHandCount()
         # self.dev_cards: list[DevCards] = []
         self.board = board
-        self.strategy = StrategyExplorer()
+        self.strategy = StrategyExplorer(self.board, self)
 
-    def play(self):
-        self.strategy.play(self.board, self)
+    def play(self, other_players: list[Player]):
+        self.strategy.play(other_players)
         # all_group_actions = self.get_all_group_actions()
         # print("Number of possibilities:", len(all_group_actions))
         # group_actions = self.strategy.play(self.board, self, all_group_actions)
@@ -161,6 +161,13 @@ class Player:
         for res, num in self.resource_cards.items():
             render_text(screen, f"{res}: {num}", x, y, 30, (0, 0, 0), False)
             y += 40
+
+    def get_ports(self) -> Generator[Resource]:
+        for path in self.board.paths:
+            if path.port is not None and (
+                    path.intersections[0].content is not None and path.intersections[0].content.player == self or
+                    path.intersections[1].content is not None and path.intersections[1].content.player == self):
+                yield path.port
 
 
 def neighbour_tiles_expectation(intersection: TileIntersection):

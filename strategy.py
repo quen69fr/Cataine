@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from actions import Action, ActionBuildColony, ActionBuildRoad, ActionBuildTown
 from board import Board
 from tile_intersection import TileIntersection
+from exchange import Exchange, BANK_PLAYER_FOR_EXCHANGE
 
 if TYPE_CHECKING:
     from player import Player
@@ -14,9 +15,12 @@ from resource import Resource, ResourceHandCount
 
 
 class Strategy:
+    def __init__(self, board: Board, player: Player):
+        self.board = board
+        self.player = player
 
     @abstractmethod
-    def play(self, board: Board, player: Player):
+    def play(self, other_players: list[Player]):
         pass
 
 
@@ -46,10 +50,9 @@ class ObjectiveBuildColony(Objective):
         distances: dict[TileIntersection, int] = {}
 
         for path in self.player.find_all_path_belonging_to_player():
-            if path.intersections[0] not in starts:
-                starts.append(path.intersections[0])
-            if path.intersections[1] not in starts:
-                starts.append(path.intersections[1])
+            for inter in path.intersections:
+                if inter.content is None and inter not in starts:
+                    starts.append(inter)
 
         for start in starts:
             distances[start] = 0
@@ -59,8 +62,10 @@ class ObjectiveBuildColony(Objective):
             inte = q.pop(0)
             d = distances[inte] + 1
             for path in inte.neighbour_paths:
+                if path.road_player is not None:
+                    continue
                 for neigh in path.intersections:
-                    if neigh not in distances:
+                    if neigh.content is None and neigh not in distances:
                         distances[neigh] = d
                         q.append(neigh)
 
@@ -89,7 +94,7 @@ class ObjectiveBuildColony(Objective):
         curr = m
         for i in range(distances[m]):
             for path, inte in curr.neighbour_paths_intersection():
-                if path.road_player is None and distances[inte] == distances[curr] - 1:
+                if path.road_player is None and inte in distances and distances[inte] == distances[curr] - 1:
                     actions.insert(0, ActionBuildRoad(path, self.player))
                     curr = inte
                     break
@@ -152,28 +157,98 @@ def mark_objective(player: Player, cost_no_modify: ResourceHandCount, initial_ga
 
 
 class StrategyExplorer(Strategy):
-    def play(self, board: Board, player: Player):
-        actions = self._get_objective(board, player)
-        while actions:
-            for action in actions:
-                assert action.available()
-                if player.resource_cards.has(action.cost):
+    def play(self, other_players: list[Player]):
+        obj = self._get_objective()
+        while obj is not None:
+            for action in obj.actions:
+                if self.player.resource_cards.has(action.cost):
+                    assert action.available()
                     action.apply()
                 else:
+                    if self._suggest_and_make_exchanges(other_players):
+                        self.play(other_players)
                     return
-            actions = self._get_objective(board, player)
+            obj = self._get_objective()
 
-    def _get_objective(self, board: Board, player: Player) -> list[Action]:
-        objs = [ObjectiveBuildColony(board, player), ObjectiveBuildTown(board, player)]
-        # objs = [ObjectiveBuildColony(board, player)]
+    def _suggest_and_make_exchanges(self, other_players: list[Player]):
+        obj = self._get_objective()
+        cards_needed = ResourceHandCount()
+        cards_useless = self.player.resource_cards.copy()
+        for res, num in obj.actions[0].cost.items():
+            for _ in range(num):
+                if not cards_useless.try_consume_one(res):
+                    cards_needed.add_one(res)
+        best_mark = 1
+        best_exchange = None
+        best_player_for_exchange = None
+        for lost in cards_useless.copy().subsets():
+            if lost == ResourceHandCount():
+                continue
+            for gain in cards_needed.copy().subsets():
+                if gain == ResourceHandCount():
+                    continue
+                exchange = Exchange(gain, lost)
+                mark = self._mark_exchange(exchange)
+                if mark > best_mark:
+                    player = self._ask_every_one_for_exchange(exchange, other_players)
+                    if player is not None:
+                        best_mark = mark
+                        best_exchange = exchange
+                        best_player_for_exchange = player
+        if best_exchange is None:
+            return False
+        print(" -> Exchange:", best_exchange, "with", best_player_for_exchange)
+        best_exchange.apply(self.player, best_player_for_exchange)
+        return True
+
+    def _ask_every_one_for_exchange(self, exchange: Exchange, other_players: list[Player]) -> \
+            Player | BANK_PLAYER_FOR_EXCHANGE | None:
+        # We look for the ports
+        ports = list(self.player.get_ports())
+        if Resource.P_3_FOR_1 in ports and 3 * sum(exchange.gain.values()) == sum(exchange.lost.values()):
+            possible = True
+            for _, num in exchange.lost:
+                if not num % 3 == 0:
+                    possible = False
+                    break
+            if possible:
+                return BANK_PLAYER_FOR_EXCHANGE
+        if 2 * sum(exchange.gain.values()) == sum(exchange.lost.values()):
+            possible = True
+            for res, num in exchange.lost:
+                if not (num % 2 == 0 and (num == 0 or res in ports)):
+                    possible = False
+                    break
+            if possible:
+                return BANK_PLAYER_FOR_EXCHANGE
+
+        # We ask the other players
+        for player in other_players:
+            if player.strategy.accept_exchange(exchange.inverse()):
+                return player
+
+    def _mark_exchange(self, exchange: Exchange):
+        if not exchange.possible(self.player):
+            return -1
+        mark_without_exchange = self._get_objective().mark
+        exchange.apply_one(self.player)
+        mark_with_exchange = self._get_objective().mark
+        exchange.undo(self.player)
+        return mark_with_exchange / mark_without_exchange
+
+    def accept_exchange(self, exchange: Exchange):
+        return self._mark_exchange(exchange) > 1
+
+    def _get_objective(self) -> Objective | None:
+        objs = [ObjectiveBuildColony(self.board, self.player), ObjectiveBuildTown(self.board, self.player)]
+        # objs = [ObjectiveBuildColony(self.board, self.player)]
         best_obj: Objective | None = None
         for obj in objs:
             obj.do()
             if not obj.actions:
                 continue
-            print(obj.mark, obj)
             if best_obj is None or best_obj.mark < obj.mark:
                 best_obj = obj
         if best_obj is None:
-            return []
-        return best_obj.actions
+            return None
+        return best_obj

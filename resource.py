@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Generator
 from enum import Enum
 from dataclasses import dataclass
 
@@ -32,6 +33,12 @@ class ResourceHandCount(dict):
     def add_one(self, res: Resource):
         self[res] += 1
 
+    def try_consume_one(self, res: Resource):
+        if self[res] >= 1:
+            self[res] -= 1
+            return True
+        return False
+
     def has(self, cost: ResourceHandCount):
         for res, count in cost.items():
             if self[res] < count:
@@ -53,6 +60,18 @@ class ResourceHandCount(dict):
 
     def copy(self) -> ResourceHandCount:
         return ResourceHandCount(self)
+
+    def subsets(self) -> Generator[ResourceHandCount]:
+        for res, num in self:
+            if num > 0:
+                self[res] = 0
+                for sub_set in self.subsets():
+                    yield sub_set.copy()
+                    for _ in range(num):
+                        sub_set.add_one(res)
+                        yield sub_set.copy()
+                return
+        yield ResourceHandCount()
 
     def __iter__(self):
         return self.items().__iter__()
@@ -85,7 +104,7 @@ BOARD_LAYOUT_RESOURCES = [
     Resource.WOOL,
     Resource.CLAY
 ]
-BOARD_LAYOUT_DICE_NUMBERS = [6, 3, 8, 2, 4, 5, 10, 5, 9, 0, 6, 9, 10, 11, 3, 12, 8, 6, 11]
+BOARD_LAYOUT_DICE_NUMBERS = [6, 3, 8, 2, 4, 5, 10, 5, 9, 0, 6, 9, 10, 11, 3, 12, 8, 4, 11]
 
 BOARD_PORT_RESOURCES = [
     Resource.P_3_FOR_1,

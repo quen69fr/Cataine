@@ -28,7 +28,8 @@ class Game:
         self.board = Board(BOARD_LAYOUT_RESOURCES, BOARD_LAYOUT_DICE_NUMBERS, BOARD_PORT_RESOURCES)
         self.players = [
             Player(Color.RED, self.board),
-            # Player(Color.BLUE, self.board)
+            Player(Color.BLUE, self.board),
+            Player(Color.ORANGE, self.board)
         ]
         self.turn_number = 0
         self.halfturn_flag = True
@@ -47,12 +48,12 @@ class Game:
 
     def halfturn(self):
         if self.game_state == GameState.PLACING_COLONIES:
-            print("\nplayer:", self.get_current_player())
+            print("\nPlayer:", self.get_current_player())
             self.turn()
             return
 
         if self.halfturn_flag:
-            print("\nplayer:", self.get_current_player())
+            print("\nPlayer:", self.get_current_player())
             self._throw_dice()
         else:
             self._current_player_plays()
@@ -83,11 +84,15 @@ class Game:
                 if t.dice_number == r:
                     self._give_resources_to_players(t)
 
-    def get_current_player(self):
+    def get_current_player(self) -> Player:
         return self.players[self.turn_number % len(self.players)]
 
+    def get_non_current_players(self) -> list[Player]:
+        index = self.turn_number % len(self.players)
+        return self.players[:index] + self.players[index + 1:]
+
     def _current_player_plays(self):
-        self.get_current_player().play()
+        self.get_current_player().play(self.get_non_current_players())
 
     def _turn_placing_colonies(self):
         self.get_current_player().place_initial_colony()
