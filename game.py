@@ -29,7 +29,8 @@ class Game:
         self.players = [
             Player(Color.RED, self.board),
             Player(Color.BLUE, self.board),
-            Player(Color.ORANGE, self.board)
+            Player(Color.ORANGE, self.board),
+            Player(Color.WHITE, self.board)
         ]
         self.turn_number = 0
         self.halfturn_flag = True
@@ -85,6 +86,10 @@ class Game:
                     self._give_resources_to_players(t)
 
     def get_current_player(self) -> Player:
+        if self.game_state == GameState.PLACING_COLONIES:
+            if self.turn_number < len(self.players):
+                return self.players[self.turn_number]
+            return self.players[2 * len(self.players) - self.turn_number - 1]
         return self.players[self.turn_number % len(self.players)]
 
     def get_non_current_players(self) -> list[Player]:
@@ -100,6 +105,6 @@ class Game:
     def render(self, screen: pygame.Surface):
         self.board.render(40, 40, screen)
         for i, player in enumerate(self.players):
-            player.render(screen, 800 + 250 * (i // 2), 50 + 300 * (i % 2), self.turn_number % len(self.players) == i)
+            player.render(screen, 800 + 250 * (i // 2), 50 + 300 * (i % 2), self.get_current_player() == player)
 
         render_text(screen, f"turn number: {self.turn_number}", 0, 0, 20, 0, False, None)

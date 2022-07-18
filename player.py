@@ -167,7 +167,7 @@ class Player:
             if path.port is not None and (
                     path.intersections[0].content is not None and path.intersections[0].content.player == self or
                     path.intersections[1].content is not None and path.intersections[1].content.player == self):
-                yield path.port
+                yield path.port.resource
 
 
 def neighbour_tiles_expectation(intersection: TileIntersection):

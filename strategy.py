@@ -150,7 +150,7 @@ def mark_objective(player: Player, cost_no_modify: ResourceHandCount, initial_ga
         hand_after_cost_num_turns[res] -= count
         # assert hand_after_cost_num_turns[res] >= 0
 
-    gain = 200 * initial_gain
+    gain = 100 * initial_gain
     for res, count in hand_after_cost_num_turns.items():
         gain += count * prod_turns[res]
     return gain / (cost_num_turns + 1)
@@ -160,6 +160,7 @@ class StrategyExplorer(Strategy):
     def play(self, other_players: list[Player]):
         obj = self._get_objective()
         while obj is not None:
+            print("Objective:", obj, "  -> mark:", obj.mark)
             for action in obj.actions:
                 if self.player.resource_cards.has(action.cost):
                     assert action.available()
@@ -181,10 +182,13 @@ class StrategyExplorer(Strategy):
         best_mark = 1
         best_exchange = None
         best_player_for_exchange = None
-        for lost in cards_useless.copy().subsets():
+
+        gains = list(cards_needed.subsets())
+
+        for lost in cards_useless.subsets():
             if lost == ResourceHandCount():
                 continue
-            for gain in cards_needed.copy().subsets():
+            for gain in gains:
                 if gain == ResourceHandCount():
                     continue
                 exchange = Exchange(gain, lost)
@@ -197,7 +201,7 @@ class StrategyExplorer(Strategy):
                         best_player_for_exchange = player
         if best_exchange is None:
             return False
-        print(" -> Exchange:", best_exchange, "with", best_player_for_exchange)
+        print(" -> Exchange", "with", best_player_for_exchange, ":", best_exchange)
         best_exchange.apply(self.player, best_player_for_exchange)
         return True
 
@@ -205,6 +209,17 @@ class StrategyExplorer(Strategy):
             Player | BANK_PLAYER_FOR_EXCHANGE | None:
         # We look for the ports
         ports = list(self.player.get_ports())
+        # 2 for 1
+        if 2 * sum(exchange.gain.values()) == sum(exchange.lost.values()):
+            possible = True
+            for res, num in exchange.lost:
+                if not (num % 2 == 0 and (num == 0 or res in ports)):
+                    possible = False
+                    break
+            if possible:
+                return BANK_PLAYER_FOR_EXCHANGE
+
+        # 3 for 1
         if Resource.P_3_FOR_1 in ports and 3 * sum(exchange.gain.values()) == sum(exchange.lost.values()):
             possible = True
             for _, num in exchange.lost:
@@ -213,10 +228,11 @@ class StrategyExplorer(Strategy):
                     break
             if possible:
                 return BANK_PLAYER_FOR_EXCHANGE
-        if 2 * sum(exchange.gain.values()) == sum(exchange.lost.values()):
+        # 4 for 1
+        if 4 * sum(exchange.gain.values()) == sum(exchange.lost.values()):
             possible = True
-            for res, num in exchange.lost:
-                if not (num % 2 == 0 and (num == 0 or res in ports)):
+            for _, num in exchange.lost:
+                if not num % 4 == 0:
                     possible = False
                     break
             if possible:
@@ -229,12 +245,14 @@ class StrategyExplorer(Strategy):
 
     def _mark_exchange(self, exchange: Exchange):
         if not exchange.possible(self.player):
-            return -1
-        mark_without_exchange = self._get_objective().mark
+            return 0
+        obj_without_exchange = self._get_objective()
         exchange.apply_one(self.player)
-        mark_with_exchange = self._get_objective().mark
+        obj_with_exchange = self._get_objective()
         exchange.undo(self.player)
-        return mark_with_exchange / mark_without_exchange
+        if obj_without_exchange is None or obj_with_exchange is None:
+            return 0  # end of the game...
+        return obj_with_exchange.mark / obj_without_exchange.mark
 
     def accept_exchange(self, exchange: Exchange):
         return self._mark_exchange(exchange) > 1
