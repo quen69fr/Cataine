@@ -120,7 +120,7 @@ class ObjectiveBuildTown(Objective):
 
 
 class StrategyExplorer(Strategy):
-    def place_initial_colony(self):
+    def place_initial_colony(self, take_resources: bool):
         # We place the colony on the best intersection
         best_mark = 0
         best_inter = None
@@ -141,6 +141,12 @@ class StrategyExplorer(Strategy):
         action_road = obj.actions[0]
         assert isinstance(action_road, ActionBuildRoad)
         action_road.path.road_player = self.player
+
+        # We take the resources of the colony
+        if take_resources:
+            for tile in best_inter.neighbour_tiles:
+                if not tile.resource == Resource.DESERT:
+                    self.player.resource_cards.add_one(tile.resource)
 
     def play(self, other_players: list[Player]):
         obj = self._get_objective()
@@ -166,6 +172,8 @@ class StrategyExplorer(Strategy):
             if best_resource_cards is None or mark > best_mark:
                 best_resource_cards = resource_cards
                 best_mark = mark
+        assert best_resource_cards is not None
+        self.player.resource_cards = best_resource_cards
 
     def move_thief(self):
         best_tile = None

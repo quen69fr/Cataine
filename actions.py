@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from dataclasses import dataclass
+
 from resource import Resource
+from dev_cards import DevCard
 from typing import TYPE_CHECKING
 from construction import Construction, ConstructionKind
 from resource import ResourceHandCount
@@ -116,3 +118,36 @@ class ActionBuildTown(Action):
 
     def available(self):
         return self.intersection.content == Construction(kind=ConstructionKind.COLONY, player=self.player)
+
+
+@dataclass
+class ActionBuyDevCard(Action):
+    player: Player
+    cost = ResourceHandCount({Resource.ROCK: 1, Resource.HAY: 1, Resource.WOOL: 1})
+
+    def apply(self):
+        assert self.player.board.dev_cards
+        self.player.dev_cards.insert(0, self.player.board.dev_cards.pop())
+
+    def undo(self):
+        assert self.player.dev_cards
+        self.player.board.dev_cards.insert(0, self.player.dev_cards.pop())
+
+    def available(self):
+        return len(self.player.board.dev_cards) > 0
+
+
+@dataclass
+class ActionRevealDevCard(Action):
+    dev_card: DevCard
+    player: Player
+    cost = ResourceHandCount({Resource.ROCK: 1, Resource.HAY: 1, Resource.WOOL: 1})
+
+    def apply(self):
+        pass  # TODO
+
+    def undo(self):
+        pass  # TODO
+
+    def available(self):
+        return True  # TODO : We can't reveal a dev card that we've just bought

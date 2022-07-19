@@ -22,6 +22,7 @@ game = Game()
 # for _ in range(100):
 #     game.halfturn()
 
+
 def main():
     while True:
         clock.tick(60)

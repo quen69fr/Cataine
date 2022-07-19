@@ -30,7 +30,7 @@ class Game:
             Player(Color.RED, self.board),
             Player(Color.BLUE, self.board),
             Player(Color.ORANGE, self.board),
-            Player(Color.WHITE, self.board)
+            # Player(Color.WHITE, self.board)
         ]
         self.turn_number = 0
         self.halfturn_flag = True
@@ -103,7 +103,7 @@ class Game:
         self.get_current_player().play(self.get_non_current_players())
 
     def _turn_placing_colonies(self):
-        self.get_current_player().place_initial_colony()
+        self.get_current_player().place_initial_colony(self.turn_number >= len(self.players))
 
     def render(self, screen: pygame.Surface):
         self.board.render(40, 40, screen)

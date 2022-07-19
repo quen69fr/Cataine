@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from typing import Generator
-from resource import Resource, ResourceHandCount
 from typing import TYPE_CHECKING
 
 import pygame
 
 from constants import NUM_CARD_MAX_THIEF
+from resource import Resource, ResourceHandCount
+from dev_cards import DevCard
 from color import Color
 from construction import Construction, ConstructionKind
 from probability import get_expectation_of_intersection, get_probability_to_roll
@@ -27,15 +28,16 @@ class Player:
     def __init__(self, color: Color, board: Board):
         self.color = color
         self.resource_cards = ResourceHandCount()
-        # self.dev_cards: list[DevCards] = []
+        self.dev_cards: list[DevCard] = []
+        self.dev_cards_revealed: list[DevCard] = []
         self.board = board
         self.strategy = StrategyExplorer(self.board, self)
 
     def play(self, other_players: list[Player]):
         self.strategy.play(other_players)
 
-    def place_initial_colony(self):
-        self.strategy.place_initial_colony()
+    def place_initial_colony(self, take_resources: bool = False):
+        self.strategy.place_initial_colony(take_resources)
 
     def remove_cards_for_thief(self):
         num_cards = sum(self.resource_cards.values())

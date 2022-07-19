@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import pygame
-
+from random import shuffle
 
 from resource import Resource, BOARD_PORT_INDEXES_PATHS, BOARD_PORT_DIRECTION
+from dev_cards import DevCard, NUM_DEV_CARDS
 from constants import LIST_TILES_COORDS, LIST_TILES_INTERSECTIONS_COORDS, THIEF_INITIAL_TILE
 from tile import Tile
 from tile_intersection import TileIntersection
@@ -20,6 +21,10 @@ class Board:
         self.create_bord(list_tiles_resources, list_tiles_dice_numbers, list_ports_resources)
 
         self.thief_tile: Tile = self.tiles[THIEF_INITIAL_TILE]
+
+        self.dev_cards: list[DevCard] = sum([[card for _ in range(num)] for card, num in NUM_DEV_CARDS.items()],
+                                            start=[])
+        shuffle(self.dev_cards)
 
     def create_bord(self, list_tiles_resources: list[Resource], list_tiles_dice_numbers: list[int],
                     list_ports_resources: list[Resource]):
