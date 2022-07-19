@@ -78,8 +78,11 @@ class Game:
         r = random.randint(1, 6) + random.randint(1, 6)
         print("Dice result:", r)
         if r == 7:
-            # check number of cards
-            pass  # TODO
+            for player in self.players:
+                player.remove_cards_for_thief()
+            current_player = self.get_current_player()
+            current_player.move_thief()
+            current_player.steal_card()
         else:
             for t in self.board.tiles:
                 if t.dice_number == r:

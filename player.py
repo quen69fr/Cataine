@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import pygame
 
-from actions import Action, ActionBuildRoad, ActionBuildColony, ActionBuildTown
+from constants import NUM_CARD_MAX_THIEF
 from color import Color
 from construction import Construction, ConstructionKind
 from probability import get_expectation_of_intersection, get_probability_to_roll
@@ -33,58 +33,20 @@ class Player:
 
     def play(self, other_players: list[Player]):
         self.strategy.play(other_players)
-        # all_group_actions = self.get_all_group_actions()
-        # print("Number of possibilities:", len(all_group_actions))
-        # group_actions = self.strategy.play(self.board, self, all_group_actions)
-        # print("Group action selected:", group_actions)
-        # for action in group_actions:
-        #     action.apply()
-
-    def get_all_group_actions(self) -> list[list[Action]]:
-        def do():
-            actions = []
-            for action in self.get_all_one_shot_actions():
-                action.apply()
-                actions.append([action])
-                group_actions = do()
-                for group_action in group_actions:
-                    group_action.insert(0, action)
-                actions.extend(group_actions)
-                action.undo()
-            return actions
-
-        groups_actions = do()
-        groups_actions.append([])
-        return groups_actions
-
-    def get_all_one_shot_actions(self) -> Generator[Action, None, None]:
-        if self.resource_cards.has(ActionBuildRoad.cost):
-            yield from self._get_all_one_shot_action_build_road()
-        if self.resource_cards.has(ActionBuildColony.cost):
-            yield from self._get_all_one_shot_action_build_colony()
-        if self.resource_cards.has(ActionBuildTown.cost):
-            yield from self._get_all_one_shot_action_build_town()
-
-    def _get_all_one_shot_action_build_road(self) -> Generator[Action, None, None]:
-        for path in self.board.paths:
-            action = ActionBuildRoad(path, self)
-            if action.available():
-                yield action
-
-    def _get_all_one_shot_action_build_colony(self) -> Generator[Action, None, None]:
-        for intersection in self.board.intersections:
-            action = ActionBuildColony(intersection, self)
-            if action.available():
-                yield action
-
-    def _get_all_one_shot_action_build_town(self) -> Generator[Action, None, None]:
-        for intersection in self.board.intersections:
-            action = ActionBuildTown(intersection, self)
-            if action.available():
-                yield action
 
     def place_initial_colony(self):
         self.strategy.place_initial_colony()
+
+    def remove_cards_for_thief(self):
+        num_cards = sum(self.resource_cards.values())
+        if num_cards > NUM_CARD_MAX_THIEF:
+            self.strategy.remove_cards_thief((num_cards + 1) // 2)
+
+    def move_thief(self):
+        self.strategy.move_thief()
+
+    def steal_card(self):
+        self.strategy.steal_card()
 
     def find_all_intersection_belonging_to_player(self) -> Generator[TileIntersection, None, None]:
         for inte in self.board.intersections:
@@ -101,7 +63,7 @@ class Player:
             if path.road_player == self:
                 yield path
 
-    def get_resource_production_expectation_without_exchange(self):
+    def get_resource_production_expectation_without_exchange(self, with_thief: bool = False):
         """ resource -> number of that resource per turn """
         prod: dict[Resource, float] = {
             Resource.CLAY: 0,
@@ -118,16 +80,16 @@ class Player:
             else:
                 c = 2
             for tile in inte.neighbour_tiles:
-                if tile.resource == Resource.DESERT:
+                if tile.resource == Resource.DESERT or (with_thief and self.board.thief_tile == tile):
                     continue
                 prod[tile.resource] += get_probability_to_roll(tile.dice_number) * c
 
         return prod
 
-    def get_resource_production_in_number_of_turns_with_systematic_exchange(self):
+    def get_resource_production_in_number_of_turns_with_systematic_exchange(self, with_thief: bool = False):
         """ resource -> number of turns """
         prod_turns = {}
-        prod = self.get_resource_production_expectation_without_exchange()
+        prod = self.get_resource_production_expectation_without_exchange(with_thief)
         min_number_of_turns_with_exchange = 4 / max(prod.values())
         for res, proba in prod.items():
             if proba == 0:
@@ -136,6 +98,22 @@ class Player:
                 prod_turns[res] = min(1/proba, min_number_of_turns_with_exchange)
 
         return prod_turns
+
+    def get_ports(self) -> Generator[Resource]:
+        for path in self.board.paths:
+            if path.port is not None and (
+                    path.intersections[0].content is not None and path.intersections[0].content.player == self or
+                    path.intersections[1].content is not None and path.intersections[1].content.player == self):
+                yield path.port.resource
+
+    def num_victory_points(self):
+        num = 0
+        for inter in self.board.intersections:
+            if inter.content is not None and inter.content.player == self:
+                num += 1
+                if inter.content.kind == ConstructionKind.TOWN:
+                    num += 1
+        return num
 
     def __repr__(self):
         return f"<Player {self.color.name}>"
@@ -153,13 +131,6 @@ class Player:
         for res, num in self.resource_cards.items():
             render_text(screen, f"{res}: {num}", x, y, 30, (0, 0, 0), False)
             y += 40
-
-    def get_ports(self) -> Generator[Resource]:
-        for path in self.board.paths:
-            if path.port is not None and (
-                    path.intersections[0].content is not None and path.intersections[0].content.player == self or
-                    path.intersections[1].content is not None and path.intersections[1].content.player == self):
-                yield path.port.resource
 
 
 def neighbour_tiles_expectation(intersection: TileIntersection):

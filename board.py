@@ -17,9 +17,9 @@ class Board:
         self.paths: list[TilePath] = []
         self.intersections: list[TileIntersection] = []
 
-        self.thief_tile: int = THIEF_INITIAL_TILE
-
         self.create_bord(list_tiles_resources, list_tiles_dice_numbers, list_ports_resources)
+
+        self.thief_tile: Tile = self.tiles[THIEF_INITIAL_TILE]
 
     def create_bord(self, list_tiles_resources: list[Resource], list_tiles_dice_numbers: list[int],
                     list_ports_resources: list[Resource]):
@@ -66,8 +66,8 @@ class Board:
             self.paths[index].add_port(resource, direction)
 
     def render(self, x0: int, y0: int, screen: pygame.Surface):
-        for i, tile in enumerate(self.tiles):
-            tile.render(x0, y0, screen, i == self.thief_tile)
+        for tile in self.tiles:
+            tile.render(x0, y0, screen, tile == self.thief_tile)
         for path in self.paths:
             path.render_port(x0, y0, screen)
             path.render_first_layer(x0, y0, screen)

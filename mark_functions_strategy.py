@@ -3,20 +3,25 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 from tile_intersection import TileIntersection
+from tile import Tile
 from probability import get_probability_to_roll
 from resource import Resource, ResourceHandCount
+from construction import ConstructionKind
 
 if TYPE_CHECKING:
     from player import Player
 
 
 def mark_objective(player: Player, cost_no_modify: ResourceHandCount, initial_gain: float) -> float:
+    # TODO : Take into account the number of cards for the thief
+    #  -> Maybe with 2 objectives in parallel (recursion ?)...
     cost = cost_no_modify.copy()
     required_cards = cost.copy()
 
     # breakpoint()
 
-    prod_turns = player.get_resource_production_in_number_of_turns_with_systematic_exchange()
+    # TODO : We could be more precise with the ports...
+    prod_turns = player.get_resource_production_in_number_of_turns_with_systematic_exchange(with_thief=True)
     cost.subtract_fine_if_not_present(player.resource_cards)
     cost_num_turns = max(num * prod_turns[res] for res, num in cost.items())
 
@@ -31,7 +36,7 @@ def mark_objective(player: Player, cost_no_modify: ResourceHandCount, initial_ga
         hand_after_cost_num_turns[res] = count
 
     # predict cards and add to future hands
-    for res, expectation in player.get_resource_production_expectation_without_exchange().items():
+    for res, expectation in player.get_resource_production_expectation_without_exchange(with_thief=True).items():
         hand_after_cost_num_turns[res] += expectation * cost_num_turns
 
     # remove all resources that will be used by this objective
@@ -49,12 +54,13 @@ def mark_resource(player: Player, resource: Resource):
     if resource == Resource.DESERT:
         return 0
     ports = list(player.get_ports())
+    c = 80
     if resource in ports:
-        return 1
-    else:
-        return (1 if Resource.P_3_FOR_1 in ports else 0.95) / \
-               ((1 + (60 if Resource.P_3_FOR_1 in ports else 80)
-                 * player.get_resource_production_expectation_without_exchange()[resource]) ** 0.6)
+        c = 40
+    elif Resource.P_3_FOR_1 in ports:
+        c = 60
+    return (1 if Resource.P_3_FOR_1 in ports else 0.95) / \
+           ((1 + c * player.get_resource_production_expectation_without_exchange()[resource]) ** 0.6)
 
 
 def mark_port(player: Player, resource: Resource, special_expectation: float = None):
@@ -95,3 +101,25 @@ def mark_intersection(player: Player, intersection: TileIntersection):
                         special_expectation += get_probability_to_roll(tile.dice_number)
                 mark += mark_port(player, path.port.resource, special_expectation=special_expectation)
     return 6 * mark
+
+
+def mark_tile_thief(player: Player, tile: Tile):
+    has_someone_to_steal = False
+    mark = 0
+    for inter in tile.intersections:
+        if inter.content is not None:
+            c = 1 if inter.content.kind == ConstructionKind.COLONY else 2
+            coef = 1
+            if inter.content.player == player:
+                coef = -5
+            else:
+                if not sum(inter.content.player.resource_cards.values()) == 0:
+                    has_someone_to_steal = True
+            mark += c * coef * mark_resource(inter.content.player, tile.resource)
+    if tile.resource == Resource.DESERT:
+        mark = 0
+    else:
+        mark *= get_probability_to_roll(tile.dice_number)
+    if has_someone_to_steal:
+        mark += 1
+    return mark

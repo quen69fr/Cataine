@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Generator
 from enum import Enum
 from dataclasses import dataclass
+from random import randint
 
 
 class Resource(Enum):
@@ -16,7 +17,6 @@ class Resource(Enum):
 
 
 class ResourceHandCount(dict):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if Resource.CLAY not in self:
@@ -30,8 +30,8 @@ class ResourceHandCount(dict):
         if Resource.ROCK not in self:
             self[Resource.ROCK] = 0
 
-    def add_one(self, res: Resource):
-        self[res] += 1
+    def add_one(self, res: Resource, num: int = 1):
+        self[res] += num
 
     def try_consume_one(self, res: Resource):
         if self[res] >= 1:
@@ -72,6 +72,20 @@ class ResourceHandCount(dict):
                         yield sub_set.copy()
                 return
         yield ResourceHandCount()
+
+    def subsets_of_size_k(self, k: int) -> Generator[ResourceHandCount]:
+        for subset in self.subsets():
+            if sum(subset.values()) == k:
+                yield subset
+
+    def random_resource(self):
+        assert sum(self.values()) > 0
+        n = randint(0, sum(self.values()) - 1)
+        for res, num in self.items():
+            n -= num
+            if n < 0:
+                return res
+        assert False
 
     def __iter__(self):
         return self.items().__iter__()

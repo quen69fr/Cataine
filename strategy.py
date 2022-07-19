@@ -8,7 +8,7 @@ from actions import Action, ActionBuildColony, ActionBuildRoad, ActionBuildTown
 from board import Board
 from tile_intersection import TileIntersection
 from exchange import Exchange, BANK_PLAYER_FOR_EXCHANGE
-from mark_functions_strategy import mark_intersection, mark_objective
+from mark_functions_strategy import mark_intersection, mark_objective, mark_tile_thief
 
 if TYPE_CHECKING:
     from player import Player
@@ -25,12 +25,6 @@ class Strategy:
     def play(self, other_players: list[Player]):
         pass
 
-
-# class StrategyChooseRandom(Strategy):
-
-#     def play(self, board: Board, player: Player, all_actions: list[list[Action]]) -> list[Action]:
-#         result = random.choice(all_actions)
-#         return result
 
 class Objective:
     def __init__(self, board: Board, player: Player) -> None:
@@ -161,6 +155,48 @@ class StrategyExplorer(Strategy):
                         self.play(other_players)
                     return
             obj = self._get_objective()
+
+    def remove_cards_thief(self, num_cards_kept: int):
+        best_resource_cards = None
+        best_mark = 0
+        for resource_cards in self.player.resource_cards.copy().subsets_of_size_k(num_cards_kept):
+            self.player.resource_cards.add(resource_cards)
+            mark = self._get_objective().mark
+            self.player.resource_cards.consume(resource_cards)
+            if best_resource_cards is None or mark > best_mark:
+                best_resource_cards = resource_cards
+                best_mark = mark
+
+    def move_thief(self):
+        best_tile = None
+        best_mark = None
+        for tile in self.board.tiles:
+            if tile == self.board.thief_tile:
+                continue
+            mark = mark_tile_thief(self.player, tile)
+            if best_tile is None or mark > best_mark:
+                best_tile = tile
+                best_mark = mark
+        assert best_tile is not None
+        self.board.thief_tile = best_tile
+
+    def steal_card(self):
+        best_player = None
+        best_num_victory_points = 0
+        for inter in self.board.thief_tile.intersections:
+            if inter.content is None:
+                continue
+            player = inter.content.player
+            if player == self.player or sum(player.resource_cards.values()) == 0:
+                continue
+            num_victory_points = player.num_victory_points()
+            if best_player is None or num_victory_points > best_num_victory_points:
+                best_player = player
+                best_num_victory_points = num_victory_points
+        if best_player is not None:
+            res = best_player.resource_cards.random_resource()
+            self.player.resource_cards.add_one(res)
+            best_player.resource_cards.try_consume_one(res)
 
     def _suggest_and_make_exchanges(self, other_players: list[Player]):
         obj = self._get_objective()
