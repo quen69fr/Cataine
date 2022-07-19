@@ -84,15 +84,7 @@ class Player:
                 yield action
 
     def place_initial_colony(self):
-        best = None
-        for intersection in self.board.intersections:
-            if best is None \
-                    or intersection.can_build() \
-                    and neighbour_tiles_expectation(best) < neighbour_tiles_expectation(intersection):
-                best = intersection
-
-        assert best.content is None
-        best.content = Construction(kind=ConstructionKind.COLONY, player=self)
+        self.strategy.place_initial_colony()
 
     def find_all_intersection_belonging_to_player(self) -> Generator[TileIntersection, None, None]:
         for inte in self.board.intersections:

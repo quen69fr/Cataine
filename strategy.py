@@ -3,10 +3,12 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import TYPE_CHECKING
 
+from construction import Construction, ConstructionKind
 from actions import Action, ActionBuildColony, ActionBuildRoad, ActionBuildTown
 from board import Board
 from tile_intersection import TileIntersection
 from exchange import Exchange, BANK_PLAYER_FOR_EXCHANGE
+from mark_functions_strategy import mark_intersection, mark_objective
 
 if TYPE_CHECKING:
     from player import Player
@@ -44,16 +46,18 @@ class Objective:
 
 
 class ObjectiveBuildColony(Objective):
-    def do(self):
+    def do(self, particular_starts: list[TileIntersection] = None):
         # find where my roads are
-        starts = list(self.player.find_all_intersection_belonging_to_player())
+        starts = particular_starts
+        if starts is None:
+            starts = list(self.player.find_all_intersection_belonging_to_player())
+
+            for path in self.player.find_all_path_belonging_to_player():
+                for inter in path.intersections:
+                    if inter.content is None and inter not in starts:
+                        starts.append(inter)
+
         distances: dict[TileIntersection, int] = {}
-
-        for path in self.player.find_all_path_belonging_to_player():
-            for inter in path.intersections:
-                if inter.content is None and inter not in starts:
-                    starts.append(inter)
-
         for start in starts:
             distances[start] = 0
 
@@ -78,7 +82,7 @@ class ObjectiveBuildColony(Objective):
             if not inte.can_build():
                 continue
 
-            gain = 6 * inte.neighbour_tiles_expectation()
+            gain = mark_intersection(self.player, inte)
             cost = ResourceHandCount()
             cost.add(ActionBuildColony.cost)
             for _ in range(d):
@@ -108,7 +112,7 @@ class ObjectiveBuildTown(Objective):
         rank: dict[TileIntersection, float] = {}
         m = None
         for inte in self.player.find_all_colonies_belonging_to_player():
-            gain = 6 * inte.neighbour_tiles_expectation()
+            gain = mark_intersection(self.player, inte)
             cost = ResourceHandCount()
             cost.add(ActionBuildTown.cost)
             rank[inte] = mark_objective(self.player, cost, gain)
@@ -121,42 +125,29 @@ class ObjectiveBuildTown(Objective):
         self.mark = rank[m]
 
 
-def mark_objective(player: Player, cost_no_modify: ResourceHandCount, initial_gain: float) -> float:
-    cost = cost_no_modify.copy()
-    required_cards = cost.copy()
-
-    # breakpoint()
-
-    prod_turns = player.get_resource_production_in_number_of_turns_with_systematic_exchange()
-    cost.subtract_fine_if_not_present(player.resource_cards)
-    cost_num_turns = max(num * prod_turns[res] for res, num in cost.items())
-
-    # build list of required cards - current hand
-    # max of the inverse probabilities for each card = number of turns to be able to complete the objective = n
-    # after n turns, estimate our hand = hand', do hand' - required cards
-    # convert that into a number
-
-    # add cards in the current hand
-    hand_after_cost_num_turns: dict[Resource, float] = {}
-    for res, count in player.resource_cards.items():
-        hand_after_cost_num_turns[res] = count
-
-    # predict cards and add to future hands
-    for res, expectation in player.get_resource_production_expectation_without_exchange().items():
-        hand_after_cost_num_turns[res] += expectation * cost_num_turns
-
-    # remove all resources that will be used by this objective
-    for res, count in required_cards.items():
-        hand_after_cost_num_turns[res] -= count
-        # assert hand_after_cost_num_turns[res] >= 0
-
-    gain = 100 * initial_gain
-    for res, count in hand_after_cost_num_turns.items():
-        gain += count * prod_turns[res]
-    return gain / (cost_num_turns + 1)
-
-
 class StrategyExplorer(Strategy):
+    def place_initial_colony(self):
+        # We place the colony on the best intersection
+        best_mark = 0
+        best_inter = None
+        for inter in self.board.intersections:
+            if not inter.can_build():
+                continue
+            mark = mark_intersection(self.player, inter)
+            if best_inter is None or best_mark < mark:
+                best_inter = inter
+                best_mark = mark
+
+        best_inter.content = Construction(kind=ConstructionKind.COLONY, player=self.player)
+
+        # We place the road around this particular colony
+        obj = ObjectiveBuildColony(self.board, self.player)
+        obj.do(particular_starts=[best_inter])
+        assert obj.actions
+        action_road = obj.actions[0]
+        assert isinstance(action_road, ActionBuildRoad)
+        action_road.path.road_player = self.player
+
     def play(self, other_players: list[Player]):
         obj = self._get_objective()
         while obj is not None:
@@ -259,7 +250,6 @@ class StrategyExplorer(Strategy):
 
     def _get_objective(self) -> Objective | None:
         objs = [ObjectiveBuildColony(self.board, self.player), ObjectiveBuildTown(self.board, self.player)]
-        # objs = [ObjectiveBuildColony(self.board, self.player)]
         best_obj: Objective | None = None
         for obj in objs:
             obj.do()
