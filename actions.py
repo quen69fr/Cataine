@@ -7,7 +7,7 @@ from resource import Resource
 from dev_cards import DevCard
 from typing import TYPE_CHECKING
 from construction import Construction, ConstructionKind
-from resource import ResourceHandCount
+from resource_hand_count import ResourceHandCount
 
 if TYPE_CHECKING:
     from player import Player

@@ -5,7 +5,8 @@ from typing import TYPE_CHECKING
 from tile_intersection import TileIntersection
 from tile import Tile
 from probability import get_probability_to_roll
-from resource import Resource, ResourceHandCount
+from resource import Resource
+from resource_hand_count import ResourceHandCount
 from construction import ConstructionKind
 
 if TYPE_CHECKING:

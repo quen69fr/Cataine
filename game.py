@@ -11,13 +11,14 @@ from board import Board
 from color import Color
 from construction import ConstructionKind
 from player import Player
-from render_text import render_text
+from rendering_functions import render_text
 from tile import Tile
 
 
 class GameState(Enum):
     PLACING_COLONIES = 1
     PLAYING = 2
+    END = 3
 
 
 class Game:
@@ -27,10 +28,10 @@ class Game:
     def __init__(self):
         self.board = Board(BOARD_LAYOUT_RESOURCES, BOARD_LAYOUT_DICE_NUMBERS, BOARD_PORT_RESOURCES)
         self.players = [
-            Player(Color.RED, self.board),
-            Player(Color.BLUE, self.board),
-            Player(Color.ORANGE, self.board),
-            # Player(Color.WHITE, self.board)
+            Player("Mathieu", Color.WHITE, self.board),
+            Player("Quentin", Color.RED, self.board),
+            Player("Juliette", Color.BLUE, self.board),
+            Player("Sarah", Color.ORANGE, self.board),
         ]
         self.turn_number = 0
         self.halfturn_flag = True
@@ -108,6 +109,6 @@ class Game:
     def render(self, screen: pygame.Surface):
         self.board.render(40, 40, screen)
         for i, player in enumerate(self.players):
-            player.render(screen, 800 + 250 * (i // 2), 50 + 300 * (i % 2), self.get_current_player() == player)
+            player.render_draft(screen, 800 + 250 * (i // 2), 50 + 300 * (i % 2), self.get_current_player() == player)
 
-        render_text(screen, f"turn number: {self.turn_number}", 0, 0, 20, 0, False, None)
+        render_text(screen, f"turn number: {self.turn_number}", 0, 0, 20, (0, 0, 0), False, None)

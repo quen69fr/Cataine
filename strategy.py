@@ -13,7 +13,8 @@ from mark_functions_strategy import mark_intersection, mark_objective, mark_tile
 if TYPE_CHECKING:
     from player import Player
 
-from resource import Resource, ResourceHandCount
+from resource import Resource
+from resource_hand_count import ResourceHandCount
 
 
 class Strategy:

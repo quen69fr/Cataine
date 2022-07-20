@@ -4,19 +4,18 @@ import random
 
 import pygame
 
-from game import Game
 from resource_manager import ResourceManager
+from game import Game
+from render_game import RenderGame
 
 random.seed(1)
 pygame.init()
-
-background = pygame.image.load("images/FondEau.png")
-screen = pygame.display.set_mode(background.get_size())
 clock = pygame.time.Clock()
 
 ResourceManager.load()
 
 game = Game()
+render_game = RenderGame(game)
 # pygame.key.set_repeat(250, 10)
 
 # for _ in range(100):
@@ -35,9 +34,10 @@ def main():
                     game.halfturn()
                 elif event.key == pygame.K_ESCAPE:
                     return
+                elif event.key == pygame.K_TAB:
+                    render_game.change_main_player()
 
-        screen.blit(background, (0, 0))
-        game.render(screen)
+        render_game.render()
         pygame.display.flip()
 
 

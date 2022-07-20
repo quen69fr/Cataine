@@ -6,12 +6,13 @@ from typing import TYPE_CHECKING
 import pygame
 
 from constants import NUM_CARD_MAX_THIEF
-from resource import Resource, ResourceHandCount
+from resource import Resource
+from resource_hand_count import ResourceHandCount
 from dev_cards import DevCard
 from color import Color
 from construction import Construction, ConstructionKind
 from probability import get_expectation_of_intersection, get_probability_to_roll
-from render_text import render_text
+from rendering_functions import render_text
 from strategy import StrategyExplorer
 from tile_intersection import TileIntersection
 from tile_path import TilePath
@@ -25,7 +26,8 @@ class Player:
     resource_cards: ResourceHandCount
     board: Board
 
-    def __init__(self, color: Color, board: Board):
+    def __init__(self, nickname: str, color: Color, board: Board):
+        self.nickname = nickname
         self.color = color
         self.resource_cards = ResourceHandCount()
         self.dev_cards: list[DevCard] = []
@@ -58,6 +60,11 @@ class Player:
     def find_all_colonies_belonging_to_player(self) -> Generator[TileIntersection, None, None]:
         for inte in self.board.intersections:
             if inte.content == Construction(ConstructionKind.COLONY, self):
+                yield inte
+
+    def find_all_towns_belonging_to_player(self) -> Generator[TileIntersection, None, None]:
+        for inte in self.board.intersections:
+            if inte.content == Construction(ConstructionKind.TOWN, self):
                 yield inte
 
     def find_all_path_belonging_to_player(self) -> Generator[TilePath, None, None]:
@@ -109,6 +116,7 @@ class Player:
                 yield path.port.resource
 
     def num_victory_points(self):
+        # TODO : Longest road and knights
         num = 0
         for inter in self.board.intersections:
             if inter.content is not None and inter.content.player == self:
@@ -117,13 +125,49 @@ class Player:
                     num += 1
         return num
 
+    def num_knights(self):
+        n = 0
+        for dev_card in self.dev_cards_revealed:
+            if dev_card == DevCard.KNIGHT:
+                n += 1
+        return n
+
+    def num_roads_belonging_to_player(self):
+        n = 0
+        for path in self.board.paths:
+            if path.road_player == self:
+                n += 1
+        return n
+
+    def num_colonies_belonging_to_player(self):
+        n = 0
+        for inte in self.board.intersections:
+            if inte.content == Construction(ConstructionKind.COLONY, self):
+                n += 1
+        return n
+
+    def num_towns_belonging_to_player(self):
+        n = 0
+        for inte in self.board.intersections:
+            if inte.content == Construction(ConstructionKind.TOWN, self):
+                n += 1
+        return n
+
+    def num_constructions_belonging_to_player(self, kind: ConstructionKind):
+        if kind == ConstructionKind.ROAD:
+            return self.num_roads_belonging_to_player()
+        elif kind == ConstructionKind.COLONY:
+            return self.num_colonies_belonging_to_player()
+        elif kind == ConstructionKind.TOWN:
+            return self.num_towns_belonging_to_player()
+
     def __repr__(self):
         return f"<Player {self.color.name}>"
     
     def __str__(self):
         return repr(self)
 
-    def render(self, screen: pygame.Surface, x0: int, y0: int, my_turn: bool):
+    def render_draft(self, screen: pygame.Surface, x0: int, y0: int, my_turn: bool):
         if my_turn:
             screen.fill((0, 0, 0), (x0 - 5, y0 - 5, 240, 290))
         screen.fill(self.color.value, (x0, y0, 230, 280))

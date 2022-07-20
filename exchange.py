@@ -1,6 +1,6 @@
 
 from dataclasses import dataclass
-from resource import ResourceHandCount
+from resource_hand_count import ResourceHandCount
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:

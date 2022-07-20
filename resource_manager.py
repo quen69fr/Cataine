@@ -1,17 +1,24 @@
 from __future__ import annotations
 
-from resource import Resource
-
 import pygame.gfxdraw
 
 from color import Color
 from construction import ConstructionKind
-from render_text import render_text
+from rendering_functions import render_text
+from resource import Resource
+from dev_cards import DevCard
 
 
 class ResourceManager:
+    BACKGROUND: pygame.Surface = None
+
+    CARDS_RESOURCES_AND_DEV: dict[Resource | DevCard, pygame.Surface] = {}
+    BACK_CARD: pygame.Surface = None
+    CARD_WIDTH, CARD_HEIGHT = 0, 0
+
     TILES: dict[Resource, pygame.Surface] = {}
     CONSTRUCTIONS: dict[ConstructionKind, dict[Color, pygame.Surface]] = {
+        ConstructionKind.ROAD: {},
         ConstructionKind.COLONY: {},
         ConstructionKind.TOWN: {}
     }
@@ -28,9 +35,35 @@ class ResourceManager:
     DICE_NUMBER_IMAGE: dict[int, pygame.Surface] = {}
 
     PORTS: dict[Resource, pygame.Surface] = {}
+    SCALE_PORTS_IMAGES = 0.9
+
+    PLAYER_LOGO: pygame.Surface = None
+    CROWN: pygame.Surface = None
+    SMALL_CROWN: pygame.Surface = None
+    SMALL_CROWN_GRAY: pygame.Surface = None
+    SMALL_KNIGHT_CARD: pygame.Surface = None
+    SMALL_DEV_CARD: pygame.Surface = None
 
     @staticmethod
     def load():
+        ResourceManager.BACKGROUND = pygame.image.load("images/FondEau.png")
+
+        ResourceManager.CARDS_RESOURCES_AND_DEV[Resource.WOOL] = pygame.image.load("images/CarteMouton.png")
+        ResourceManager.CARDS_RESOURCES_AND_DEV[Resource.ROCK] = pygame.image.load("images/CartePierre.png")
+        ResourceManager.CARDS_RESOURCES_AND_DEV[Resource.HAY] = pygame.image.load("images/CarteFoin.png")
+        ResourceManager.CARDS_RESOURCES_AND_DEV[Resource.CLAY] = pygame.image.load("images/CarteArgile.png")
+        ResourceManager.CARDS_RESOURCES_AND_DEV[Resource.WOOD] = pygame.image.load("images/CarteBois.png")
+        ResourceManager.CARDS_RESOURCES_AND_DEV[DevCard.KNIGHT] = pygame.image.load("images/CarteChevalier.png")
+        ResourceManager.CARDS_RESOURCES_AND_DEV[DevCard.FREE_CARDS] = \
+            pygame.image.load("images/CarteRessourcesGratuites.png")
+        ResourceManager.CARDS_RESOURCES_AND_DEV[DevCard.MONOPOLY] = pygame.image.load("images/CarteMonopole.png")
+        ResourceManager.CARDS_RESOURCES_AND_DEV[DevCard.FREE_ROADS] = \
+            pygame.image.load("images/CarteRoutesGratuites.png")
+        ResourceManager.CARDS_RESOURCES_AND_DEV[DevCard.VICTORY_POINT] = \
+            pygame.image.load("images/CartePointVictoire.png")
+        ResourceManager.BACK_CARD = pygame.image.load("images/CarteDos.png")
+        ResourceManager.CARD_WIDTH, ResourceManager.CARD_HEIGHT = ResourceManager.BACK_CARD.get_size()
+
         ResourceManager.TILES[Resource.WOOL] = pygame.image.load("images/TuileMouton.png")
         ResourceManager.TILES[Resource.ROCK] = pygame.image.load("images/TuilePierre.png")
         ResourceManager.TILES[Resource.DESERT] = pygame.image.load("images/TuileDesert.png")
@@ -44,15 +77,30 @@ class ResourceManager:
         town = pygame.image.load("images/Ville.png")
         # We display the color of the construction and then blit the black image above
         for color in Color:
+            # Colony
             colored_colony = pygame.Surface(colony.get_size(), pygame.SRCALPHA)
             pygame.draw.polygon(colored_colony, color.value, [(3, 9), (15, 1), (26, 9), (26, 25), (3, 25)], 0)
             colored_colony.blit(colony, (0, 0))
             ResourceManager.CONSTRUCTIONS[ConstructionKind.COLONY][color] = colored_colony
 
+            # Town
             colored_town = pygame.Surface(town.get_size(), pygame.SRCALPHA)
             pygame.draw.polygon(colored_town, color.value, [(3, 9), (19, 1), (34, 9), (34, 33), (3, 33)], 0)
             colored_town.blit(town, (0, 0))
             ResourceManager.CONSTRUCTIONS[ConstructionKind.TOWN][color] = colored_town
+
+            # Road
+            road = pygame.Surface((55, 30))
+            road.fill((255, 255, 255))
+            p1 = (48, 8)
+            p2 = (8, 21)
+            pygame.draw.line(road, (0, 0, 0), p1, p2, ResourceManager.ROAD_WIDTH + 2 - 1)
+            pygame.gfxdraw.filled_circle(road, p1[0], p1[1], ResourceManager.ROAD_WIDTH // 2, (0, 0, 0))
+            pygame.gfxdraw.filled_circle(road, p2[0], p2[1], ResourceManager.ROAD_WIDTH // 2, (0, 0, 0))
+            pygame.draw.line(road, color.value, p1, p2, ResourceManager.ROAD_WIDTH - 2 - 1)
+            pygame.gfxdraw.filled_circle(road, p1[0], p1[1], ResourceManager.ROAD_WIDTH // 2 - 2, color.value)
+            pygame.gfxdraw.filled_circle(road, p2[0], p2[1], ResourceManager.ROAD_WIDTH // 2 - 2, color.value)
+            ResourceManager.CONSTRUCTIONS[ConstructionKind.ROAD][color] = road
 
         # make the circles around the dice numbers
         r = ResourceManager.DICE_NUMBER_RADIUS
@@ -86,3 +134,11 @@ class ResourceManager:
         ResourceManager.PORTS[Resource.CLAY] = pygame.image.load("images/PortArgile.png")
         ResourceManager.PORTS[Resource.WOOL] = pygame.image.load("images/PortMouton.png")
         ResourceManager.PORTS[Resource.P_3_FOR_1] = pygame.image.load("images/Port3contre1.png")
+
+        ResourceManager.PLAYER_LOGO = pygame.image.load("images/Joueur.png")
+        ResourceManager.CROWN = pygame.image.load("images/Couronne.png")
+        ResourceManager.SMALL_CROWN = pygame.image.load("images/PetiteCouronneDoree.png")
+        ResourceManager.SMALL_CROWN_GRAY = pygame.image.load("images/PetiteCouronneGrisee.png")
+
+        ResourceManager.SMALL_KNIGHT_CARD = pygame.image.load("images/PetiteCarteChevalier.png")
+        ResourceManager.SMALL_DEV_CARD = pygame.image.load("images/CarteDosSpeciale.png")
