@@ -135,19 +135,21 @@ class StrategyExplorer(Strategy):
 
         best_inter.content = Construction(kind=ConstructionKind.COLONY, player=self.player)
 
-        # We place the road around this particular colony
-        obj = ObjectiveBuildColony(self.board, self.player)
-        obj.do(particular_starts=[best_inter])
-        assert obj.actions
-        action_road = obj.actions[0]
-        assert isinstance(action_road, ActionBuildRoad)
-        action_road.path.road_player = self.player
-
         # We take the resources of the colony
         if take_resources:
             for tile in best_inter.neighbour_tiles:
                 if not tile.resource == Resource.DESERT:
                     self.player.resource_cards.add_one(tile.resource)
+
+    def place_road_around_initial_colony(self):
+        inter = self.player.get_initial_colony_intersection_without_road()
+        # We place the road around this particular colony
+        obj = ObjectiveBuildColony(self.board, self.player)
+        obj.do(particular_starts=[inter])
+        assert obj.actions
+        action_road = obj.actions[0]
+        assert isinstance(action_road, ActionBuildRoad)
+        action_road.path.road_player = self.player
 
     def play(self, other_players: list[Player]):
         obj = self._get_objective()
@@ -202,10 +204,10 @@ class StrategyExplorer(Strategy):
             if best_player is None or num_victory_points > best_num_victory_points:
                 best_player = player
                 best_num_victory_points = num_victory_points
-        if best_player is not None:
-            res = best_player.resource_cards.random_resource()
-            self.player.resource_cards.add_one(res)
-            best_player.resource_cards.try_consume_one(res)
+        assert best_player is not None
+        res = best_player.resource_cards.random_resource()
+        self.player.resource_cards.add_one(res)
+        best_player.resource_cards.try_consume_one(res)
 
     def _suggest_and_make_exchanges(self, other_players: list[Player]):
         obj = self._get_objective()

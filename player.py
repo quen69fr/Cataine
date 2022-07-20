@@ -41,6 +41,9 @@ class Player:
     def place_initial_colony(self, take_resources: bool = False):
         self.strategy.place_initial_colony(take_resources)
 
+    def place_initial_road(self):
+        self.strategy.place_road_around_initial_colony()
+
     def remove_cards_for_thief(self):
         num_cards = sum(self.resource_cards.values())
         if num_cards > NUM_CARD_MAX_THIEF:
@@ -51,6 +54,15 @@ class Player:
 
     def steal_card(self):
         self.strategy.steal_card()
+
+    def can_steal(self):
+        for inter in self.board.thief_tile.intersections:
+            if inter.content is None:
+                continue
+            player = inter.content.player
+            if not player == self and not sum(player.resource_cards.values()) == 0:
+                return True
+        return False
 
     def find_all_intersection_belonging_to_player(self) -> Generator[TileIntersection, None, None]:
         for inte in self.board.intersections:
@@ -160,6 +172,18 @@ class Player:
             return self.num_colonies_belonging_to_player()
         elif kind == ConstructionKind.TOWN:
             return self.num_towns_belonging_to_player()
+
+    def get_initial_colony_intersection_without_road(self) -> TileIntersection:
+        for inter in self.board.intersections:
+            if inter.content == Construction(ConstructionKind.COLONY, self):
+                has_roads = False
+                for path in inter.neighbour_paths:
+                    if path.road_player is not None:
+                        has_roads = True
+                        break
+                if not has_roads:
+                    return inter
+        assert False
 
     def __repr__(self):
         return f"<Player {self.color.name}>"

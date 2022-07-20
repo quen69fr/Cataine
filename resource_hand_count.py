@@ -77,8 +77,8 @@ class ResourceHandCount(dict):
         assert False
 
     def list_resources(self) -> Generator[Resource]:
-        for res, num in self.items():
-            for _ in range(num):
+        for res in ORDER_RESOURCES:
+            for _ in range(self[res]):
                 yield res
 
     def __iter__(self):

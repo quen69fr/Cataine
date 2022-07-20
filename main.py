@@ -31,7 +31,8 @@ def main():
                 return
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    game.halfturn()
+                    game.next_turn_step_ia()
+                    # game.complete_turn_ai()
                 elif event.key == pygame.K_ESCAPE:
                     return
                 elif event.key == pygame.K_TAB:

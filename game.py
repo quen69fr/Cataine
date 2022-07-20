@@ -21,6 +21,19 @@ class GameState(Enum):
     END = 3
 
 
+class GamePlayingState(Enum):
+    THROW_DICES = 0
+    GET_RESOURCES = 1
+    NEXT_TURN = 2
+    MOVE_THIEF = 3
+    STEAL_CARD = 4
+
+
+class GamePlacingColoniesState(Enum):
+    PLACING_COLONY = 0
+    PLACING_ROAD = 1
+
+
 class Game:
     board: Board
     players: list[Player]
@@ -34,60 +47,92 @@ class Game:
             Player("Sarah", Color.ORANGE, self.board),
         ]
         self.turn_number = 0
-        self.halfturn_flag = True
+
+        self.dices = (0, 0)
 
         self.game_state = GameState.PLACING_COLONIES
+        self.game_sub_state: GamePlayingState | GamePlacingColoniesState = GamePlacingColoniesState.PLACING_COLONY
 
-    def turn(self):
+    def next_turn_step_ia(self):
         if self.game_state == GameState.PLACING_COLONIES:
-            self._turn_placing_colonies()
-            if self.turn_number == len(self.players) * 2 - 1:
-                self.game_state = GameState.PLAYING
+            if self.game_sub_state == GamePlacingColoniesState.PLACING_COLONY:
+                self.place_initial_colony()
+                self.game_sub_state = GamePlacingColoniesState.PLACING_ROAD
+            else:  # self.game_sub_state == GamePlacingColoniesState.PLACING_ROAD:
+                self.place_initial_road()
+                self.end_placing_turn()
         else:
-            self._throw_dice()
-            self._current_player_plays()
+            if self.game_sub_state == GamePlayingState.THROW_DICES:
+                self.throw_dice()
+            elif self.game_sub_state == GamePlayingState.GET_RESOURCES:
+                self.get_resources()
+            elif self.game_sub_state == GamePlayingState.NEXT_TURN:
+                self.ia_player_plays()
+                self.end_playing_turn()
+            elif self.game_sub_state == GamePlayingState.MOVE_THIEF:
+                self.move_thief()
+            else:  # self.game_sub_state == GamePlayingState.STEAL_CARD:
+                self.steal_card_thief()
+
+    def complete_turn_ai(self):
+        t = self.turn_number
+        while self.turn_number == t:
+            self.next_turn_step_ia()
+
+    def place_initial_colony(self):
+        self.get_current_player().place_initial_colony(self.turn_number >= len(self.players))
+
+    def place_initial_road(self):
+        self.get_current_player().place_initial_road()
+
+    def end_placing_turn(self):
         self.turn_number += 1
+        self.game_sub_state = GamePlacingColoniesState.PLACING_COLONY
+        if self.turn_number == 2 * len(self.players):
+            self.game_state = GameState.PLAYING
+            self.game_sub_state = GamePlayingState.THROW_DICES
 
-    def halfturn(self):
-        if self.game_state == GameState.PLACING_COLONIES:
-            print("\nPlayer:", self.get_current_player())
-            self.turn()
-            return
-
-        if self.halfturn_flag:
-            print("\nPlayer:", self.get_current_player())
-            self._throw_dice()
+    def throw_dice(self):
+        self.dices = (random.randint(1, 6), random.randint(1, 6))
+        if sum(self.dices) == 7:
+            self.game_sub_state = GamePlayingState.MOVE_THIEF
         else:
-            self._current_player_plays()
-            self.turn_number += 1
-        self.halfturn_flag = not self.halfturn_flag
+            self.game_sub_state = GamePlayingState.GET_RESOURCES
+
+    def get_resources(self):
+        r = sum(self.dices)
+        assert not r == 7
+        for t in self.board.tiles:
+            if t.dice_number == r:
+                self._give_resources_to_players(t)
+        self.game_sub_state = GamePlayingState.NEXT_TURN
+
+    def move_thief(self):
+        current_player = self.get_current_player()
+        current_player.move_thief()
+        if current_player.can_steal():
+            self.game_sub_state = GamePlayingState.STEAL_CARD
+        else:
+            self.game_sub_state = GamePlayingState.NEXT_TURN
+
+    def steal_card_thief(self):
+        self.get_current_player().steal_card()
+        self.game_sub_state = GamePlayingState.NEXT_TURN
+
+    def ia_player_plays(self):
+        self.get_current_player().play(self.get_non_current_players())
+
+    def end_playing_turn(self):
+        self.game_sub_state = GamePlayingState.THROW_DICES
+        self.turn_number += 1
 
     def _give_resources_to_players(self, tile: Tile):
         for inte in tile.intersections:
             if inte.content is None:
                 continue
-
-            if inte.content.kind == ConstructionKind.COLONY:
-                # print(f"{inte.content.player} receives 1 {tile.resource}")
+            inte.content.player.resource_cards.add_one(tile.resource)
+            if inte.content.kind == ConstructionKind.TOWN:
                 inte.content.player.resource_cards.add_one(tile.resource)
-            elif inte.content.kind == ConstructionKind.TOWN:
-                inte.content.player.resource_cards.add_one(tile.resource)
-                inte.content.player.resource_cards.add_one(tile.resource)
-                # print(f"{inte.content.player} receives 2 {tile.resource}")
-
-    def _throw_dice(self):
-        r = random.randint(1, 6) + random.randint(1, 6)
-        print("Dice result:", r)
-        if r == 7:
-            for player in self.players:
-                player.remove_cards_for_thief()
-            current_player = self.get_current_player()
-            current_player.move_thief()
-            current_player.steal_card()
-        else:
-            for t in self.board.tiles:
-                if t.dice_number == r:
-                    self._give_resources_to_players(t)
 
     def get_current_player(self) -> Player:
         if self.game_state == GameState.PLACING_COLONIES:
@@ -99,9 +144,6 @@ class Game:
     def get_non_current_players(self) -> list[Player]:
         index = self.turn_number % len(self.players)
         return self.players[:index] + self.players[index + 1:]
-
-    def _current_player_plays(self):
-        self.get_current_player().play(self.get_non_current_players())
 
     def _turn_placing_colonies(self):
         self.get_current_player().place_initial_colony(self.turn_number >= len(self.players))
