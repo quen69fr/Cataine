@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from typing import Generator
-from typing import TYPE_CHECKING
+from typing import Generator, TYPE_CHECKING
 from abc import abstractmethod
 
 import pygame
@@ -37,7 +36,7 @@ class Player:
         self.board = board
 
         self.num_cards_to_remove_for_thief = 0
-        self.exchanges: None | list[Exchange] = None  # TODO
+        self.exchanges: None | list[Exchange] = None
         self.exchange_asked: Exchange | None = None
         self.exchange_accepted = False
 

@@ -140,3 +140,7 @@ class Game:
     def get_non_current_players(self) -> list[Player]:
         index = self.turn_number % len(self.players)
         return self.players[:index] + self.players[index + 1:]
+
+    def get_players_except_one(self, player: Player) -> list[Player]:
+        index = self.players.index(player)
+        return self.players[:index] + self.players[index + 1:]

@@ -37,3 +37,21 @@ def render_road(screen: pygame.Surface, p1: tuple[int, int], p2: tuple[int, int]
     pygame.gfxdraw.filled_circle(screen, p1[0], p1[1], road_width // 2 - 2, color)
     pygame.gfxdraw.filled_circle(screen, p2[0], p2[1], road_width // 2 - 2, color)
 
+
+def render_button(screen: pygame.Surface, x: int, y: int, width: int, height: int, text: str, size_text: int,
+                  selected: bool = False):
+    color_bounds = (0, 0, 0)
+    if selected:
+        color_inside = (190, 190, 190)
+        color_text = (0, 0, 0)
+    else:
+        color_inside = (0, 0, 0)
+        color_text = (190, 190, 190)
+    screen.fill(color_bounds, (x, y, width, height))
+    screen.fill(color_inside, (x + 3, y + 3, width - 6, height - 6))
+    render_text(screen, text, x + width // 2, y + height // 2, size_text, color_text)
+
+
+def render_rectangle(screen: pygame.Surface, x: int, y: int, width: int, height: int):
+    screen.fill((0, 0, 0), (x, y, width, height))
+    screen.fill((255, 255, 255), (x + 3, y + 3, width - 6, height - 6))

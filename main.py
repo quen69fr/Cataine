@@ -22,8 +22,9 @@ if __name__ == "__main__":
     game = Game(["Mathieu", "Quentin", "Juliette", "Sarah"])
 
     player_managers: dict[Player, PlayerManager] = {
-        player: IaPlayer(player) for player in game.players
+        player: IaPlayer(player) for player in game.players[1:]
     }
+    player_managers[game.players[0]] = ManualPlayer(game.players[0])
 
     render_game = RenderGame(game, game.players[0], player_managers[game.players[0]])
 
@@ -55,8 +56,8 @@ if __name__ == "__main__":
                 render_game.clic_event()
 
         game.play(player_managers)
-        render_game.update_rendering()
         render_game.render()
+        render_game.update_rendering()
         pygame.display.flip()
         clock.tick(60)
 

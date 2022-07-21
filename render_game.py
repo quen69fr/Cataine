@@ -1,6 +1,5 @@
-
 import pygame.gfxdraw
-from math import cos, sin, pi
+from math import cos, sin, pi, atan, asin, sqrt
 
 from rendering_constants import *
 from constants import NUM_VICTORY_POINTS_FOR_VICTORY
@@ -11,17 +10,8 @@ from manual_player import WIDTH_PLAYER_SIDE, X_BOARD, Y_BOARD, ManualPlayer
 from dev_cards import DevCard
 from resource import Resource
 from resource_manager import ResourceManager
-from rendering_functions import render_text
+from rendering_functions import render_text, render_rectangle, render_button
 from construction import ConstructionKind, NUM_CONSTRUCTION_MAX
-
-
-def x_position_after_dice() -> int:
-    return MARGINS + HEIGHT_ACTIONS_BOX + (HEIGHT_ACTIONS_BOX + SIZE_DICE) // 2
-
-
-def position_button_action() -> (int, int):
-    return ((x_position_after_dice() + WIDTH_PLAYER_SIDE - WIDTH_BUTTON_ACTION) // 2,
-            2 * MARGINS + HEIGHT_TITLE + (HEIGHT_ACTIONS_BOX - HEIGHT_BUTTON_ACTION) // 2)
 
 
 class RenderGame:
@@ -29,26 +19,42 @@ class RenderGame:
         self.game: Game = game
         self.main_player: Player = player
         self.main_player_manager = player_manager
+        if isinstance(self.main_player_manager, ManualPlayer):
+            self.main_player_manager.render_game = self
         self.screen: pygame.Surface = pygame.display.set_mode((WIDTH, HEIGHT))
+
+    def change_main_player(self, player: Player, player_manager: PlayerManager):
+        if isinstance(self.main_player_manager, ManualPlayer):
+            self.main_player_manager.render_game = None
+        self.main_player: Player = player
+        self.main_player_manager = player_manager
+        if isinstance(self.main_player_manager, ManualPlayer):
+            self.main_player_manager.render_game = self
 
     def clic_event(self):
         if isinstance(self.main_player_manager, ManualPlayer):
             self.main_player_manager.clic = True
 
-    def change_main_player(self, player: Player, player_manager: PlayerManager):
-        self.main_player: Player = player
-        self.main_player_manager = player_manager
+    def clic_on_secondary_players(self) -> Player | None:
+        x_mouse, y_mouse = pygame.mouse.get_pos()
+        _, size = y_size_secondary_player()
+        for (x, y), player in zip(position_secondary_players(len(self.game.players) - 1),
+                                  self.game.get_players_except_one(self.main_player)):
+            if 0 <= x_mouse - x <= size and 0 <= y_mouse - y <= size:
+                return player
+        return None
 
-    def rectangle(self, x: int, y: int, width: int, height: int):
-        self.screen.fill((0, 0, 0), (x, y, width, height))
-        self.screen.fill((255, 255, 255), (x + 3, y + 3, width - 6, height - 6))
+    def clic_on_action_button(self):
+        x_mouse, y_mouse = pygame.mouse.get_pos()
+        x_button, y_button = position_button_action()
+        return 0 <= x_mouse - x_button <= WIDTH_BUTTON_ACTION and 0 <= y_mouse - y_button <= HEIGHT_BUTTON_ACTION
 
-    def button(self, x: int, y: int, width: int, height: int, text: str, size_text: int,
-               color_bounds: tuple[int, int, int], color_inside: tuple[int, int, int],
-               color_text: tuple[int, int, int] = None):
-        self.screen.fill(color_bounds, (x, y, width, height))
-        self.screen.fill(color_inside, (x + 3, y + 3, width - 6, height - 6))
-        render_text(self.screen, text, x + width // 2, y + height // 2, size_text, color_text)
+    def clic_on_main_player_buttons(self):
+        x_mouse, y_mouse = pygame.mouse.get_pos()
+        for i, (x, y, width, height) in enumerate(rect_buttons_main_player()):
+            if 0 <= x_mouse - x <= WIDTH_BUTTON_ACTION and 0 <= y_mouse - y <= HEIGHT_BUTTON_ACTION:
+                return i
+        return None
 
     def render_card(self, card: Resource | DevCard, x: int, y: int, angle: float, radius: int):
         a_rad = angle * pi / 180
@@ -60,17 +66,52 @@ class RenderGame:
         self.screen.blit(image, (int(x_center - image.get_width() / 2), int(y_center - image.get_height() / 2)))
 
     def render_cards(self, cards: list[Resource | DevCard], x: int, y: int, angle_max: float):
-        angle_min = 13
-        angle_max = angle_max
-        r = 200  # +15 if selected
-
         num_cards = len(cards)
+        if num_cards == 0:
+            return
 
-        da = angle_max / num_cards if num_cards > angle_max / angle_min else angle_min
+        da = min(ANGLE_BETWEEN_CARDS_MAX, angle_max / num_cards)
 
+        a = (num_cards / 2 - 0.5) * da
         for i, card in enumerate(cards):
-            a = (num_cards - i - 0.5 - num_cards / 2) * da
+            r = RADIUS_CARDS_HAND
+            if isinstance(self.main_player_manager, ManualPlayer) \
+                    and i in self.main_player_manager.selected_cards:
+                r = RADIUS_CARDS_HAND_SELECTED
             self.render_card(card, x, y, a, r)
+            a -= da
+
+    def clic_cards(self, num_cards: int, x: int, y: int, angle_max: float) -> int | None:
+        if num_cards == 0:
+            return None
+
+        x_mouse, y_mouse = pygame.mouse.get_pos()
+        r_min = RADIUS_CARDS_HAND - ResourceManager.CARD_HEIGHT / 2
+        r_max = RADIUS_CARDS_HAND_SELECTED + ResourceManager.CARD_HEIGHT / 2
+        r2 = (x - x_mouse) ** 2 + (y - y_mouse) ** 2
+        if not r_min ** 2 <= r2 <= r_max ** 2:
+            return None
+
+        a_rad = asin((x - x_mouse) / sqrt(r2))
+
+        a_mouse = 180 * a_rad / pi
+
+        da = min(ANGLE_BETWEEN_CARDS_MAX, angle_max / num_cards)
+
+        ap = 180 * atan((ResourceManager.CARD_WIDTH - 6) / (2 * RADIUS_CARDS_HAND)) / pi
+        a = (num_cards / 2 - 0.5) * da + ap
+
+        if a < a_mouse:
+            return None
+
+        for i in range(num_cards):
+            a -= da
+            if a < a_mouse:
+                return i
+        a -= 2 * ap - da
+        if a < a_mouse:
+            return num_cards - 1
+        return None
 
     def render_dice(self, x: int, y: int, num: int):
         def render_point(x_, y_):
@@ -93,7 +134,7 @@ class RenderGame:
 
     def update_rendering(self):
         if isinstance(self.main_player_manager, ManualPlayer):
-            pass  # TODO
+            self.main_player_manager.update_rendering()
 
     def render(self):
         self.screen.blit(ResourceManager.BACKGROUND, (0, 0))
@@ -105,7 +146,7 @@ class RenderGame:
             self.main_player_manager.render_my_turn(self.screen, self.game.game_state, self.game.game_sub_state)
 
     def render_title(self):
-        self.rectangle(MARGINS, MARGINS, WIDTH_PLAYER_SIDE - MARGINS, HEIGHT_TITLE)
+        render_rectangle(self.screen, MARGINS, MARGINS, WIDTH_PLAYER_SIDE - MARGINS, HEIGHT_TITLE)
         x_center = (WIDTH_PLAYER_SIDE + MARGINS) // 2
         render_text(self.screen, 'CATANE', x_center, HEIGHT_TITLE // 2 - 3, 130, (50, 50, 50))
         if self.game.game_state == GameState.PLACING_COLONIES:
@@ -119,7 +160,7 @@ class RenderGame:
     def render_actions_box(self):
         x, y, width, height = MARGINS, 2 * MARGINS + HEIGHT_TITLE, WIDTH_PLAYER_SIDE - MARGINS, HEIGHT_ACTIONS_BOX
 
-        self.rectangle(x, y, width, height)
+        render_rectangle(self.screen, x, y, width, height)
         button = False
         dices = self.game.dices
         current_player = self.game.get_current_player()
@@ -151,6 +192,17 @@ class RenderGame:
                     text = "Fin du tour"
                 else:
                     text = f"{current_player.nickname} est en train de jouer..."
+            elif self.game.game_sub_state == GamePlayingState.REMOVE_CARDS_THIEF:
+                if self.main_player.num_cards_to_remove_for_thief > 0:
+                    if (isinstance(self.main_player_manager, ManualPlayer)
+                            and not len(self.main_player_manager.selected_cards) ==
+                            self.main_player.num_cards_to_remove_for_thief):
+                        text = f"Vous devez jeter {self.main_player.num_cards_to_remove_for_thief} cartes."
+                    else:
+                        button = True
+                        text = "Jeter les cartes"
+                else:
+                    text = "Les autres joueurs jetent des cartes."
             else:
                 text = "Vous devez" if my_turn else f"{current_player.nickname} doit"
                 if self.game.game_sub_state == GamePlayingState.MOVE_THIEF:
@@ -168,37 +220,44 @@ class RenderGame:
 
         if button:
             x_button, y_button = position_button_action()
-            self.button(x_button, y_button, WIDTH_BUTTON_ACTION, HEIGHT_BUTTON_ACTION, text, 30,
-                        (0, 0, 0), (0, 0, 0), (190, 190, 190))
+            render_button(self.screen, x_button, y_button, WIDTH_BUTTON_ACTION, HEIGHT_BUTTON_ACTION, text, 30)
         else:
             color = (0, 0, 0) if current_player.color == Color.WHITE else current_player.color.value
             render_text(self.screen, text, x_center, y + height // 2, 35, color)
 
-    def render_buttons_main_player(self, x: int, y: int, width: int, height: int):
-        pass  # TODO
+    def render_buttons_main_player(self):
+        if isinstance(self.main_player_manager, ManualPlayer):
+            selected_list = [
+                self.main_player_manager.ongoing_construction is not None,
+                self.main_player_manager.ongoing_bank_exchange is not None,
+                self.main_player_manager.ongoing_exchange is not None
+            ]
+        else:
+            selected_list = [False, False, False]
+        for (x, y, width, height), text, selected in zip(rect_buttons_main_player(),
+                                                         ["Construire", "Banque", "Echanger"],
+                                                         selected_list):
+            render_button(self.screen, x, y, width, height, text, 30, selected)
 
     def render_players(self):
-        y_players = HEIGHT_TITLE + HEIGHT_ACTIONS_BOX + 3 * MARGINS
-        size_secondary_player = (HEIGHT - y_players) // 3 - MARGINS
+        y_players, size_secondary_player = y_size_secondary_player()
 
-        y = y_players
-        for i, player in enumerate(self.game.players):
-            if player == self.main_player:
-                self.render_player_main(2 * MARGINS + size_secondary_player, y_players,
-                                        WIDTH_PLAYER_SIDE - 2 * MARGINS - size_secondary_player,
-                                        HEIGHT - y_players - MARGINS)
-            else:
-                self.render_player_secondary(player, MARGINS, y, size_secondary_player, size_secondary_player)
-                y += MARGINS + size_secondary_player
+        self.render_player_main()
+
+        for (x, y), player in zip(position_secondary_players(len(self.game.players) - 1),
+                                  self.game.get_players_except_one(self.main_player)):
+            self.render_player_secondary(player, x, y, size_secondary_player, size_secondary_player)
 
     def render_player_shared(self, player: Player, x: int, y: int, width: int, height: int):
-        self.rectangle(x, y, width, height)
+        render_rectangle(self.screen, x, y, width, height)
         m = 5
         self.screen.fill(player.color.value, (x + m, y + m, ResourceManager.PLAYER_LOGO.get_width(),
                                               ResourceManager.PLAYER_LOGO.get_height()))
         self.screen.blit(ResourceManager.PLAYER_LOGO, (x + m, y + m))
 
-    def render_player_main(self, x: int, y: int, width: int, height: int):
+    def render_player_main(self):
+        x, y, width, height = rect_main_player_box()
+
         # Rectangle and player logo
         self.render_player_shared(self.main_player, x, y, width, height)
 
@@ -208,7 +267,7 @@ class RenderGame:
                     y + (ResourceManager.PLAYER_LOGO.get_height() - 34 // 2) // 2 + 5, 34, color, centred=False)
 
         # Buttons
-        self.render_buttons_main_player(x, y + Y_BUTTONS_IN_MAIN_PLAYER_BOX, width, HEIGHT_BUTTONS_IN_MAIN_PLAYER_BOX)
+        self.render_buttons_main_player()
 
         # Victory points
         m = 5
@@ -224,13 +283,17 @@ class RenderGame:
                                                       y + m + (img_victory_points.get_height() + m) * j))
 
         # Resource cards
-        self.render_cards(list(self.main_player.resource_cards.list_resources()), x + width // 2, y + 310, 90)
+        x_cards, y_cards = position_hand_resource_cards()
+        self.render_cards(list(self.main_player.resource_cards.list_resources()), x_cards, y_cards,
+                          ANGLE_MAX_CARDS_RESOURCE)
 
         # Dev_card
-        y_construction = y + Y_BUTTONS_IN_MAIN_PLAYER_BOX + HEIGHT_BUTTONS_IN_MAIN_PLAYER_BOX
-        self.render_cards(self.main_player.dev_cards, x + 126 + (width - 126) // 2, y_construction + 10 + 260, 50)
+        x_cards, y_cards = position_hand_dev_cards()
+        self.render_cards(self.main_player.dev_cards, x_cards, y_cards,
+                          ANGLE_MAX_CARDS_DEV)
 
         # Constructions and dev cards
+        y_construction = y + Y_BUTTONS_IN_MAIN_PLAYER_BOX + HEIGHT_BUTTONS_IN_MAIN_PLAYER_BOX
         height_constructions = (height + y - y_construction) // 4 - 3
         y_construction += height_constructions // 2
         for image, text in [(ResourceManager.CONSTRUCTIONS[construction][self.main_player.color],

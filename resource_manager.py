@@ -28,8 +28,8 @@ class ResourceManager:
     TILE_PATH_LENGTH = 76
     ROAD_WIDTH = 12
 
-    THIEF_IMAGE = None
-    THIEF_IMAGE_WITH_DICE_NUMBER = None
+    THIEF_IMAGE: pygame.Surface = None
+    THIEF_IMAGE_WITH_DICE_NUMBER: pygame.Surface = None
 
     DICE_NUMBER_RADIUS = 20
     DICE_NUMBER_IMAGE: dict[int, pygame.Surface] = {}

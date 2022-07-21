@@ -14,7 +14,7 @@ class GamePlayingState(Enum):
     NEXT_TURN = 2
     MOVE_THIEF = 3
     STEAL_CARD = 4
-    REMOVE_CARDS_THIEF = 5  # TODO
+    REMOVE_CARDS_THIEF = 5
 
 
 class GamePlacingColoniesState(Enum):
