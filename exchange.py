@@ -22,6 +22,8 @@ class Exchange:
         return player.resource_cards.has(self.lost)
 
     def apply(self, player: 'Player', other_player: 'player | BANK_PLAYER_FOR_EXCHANGE'):
+        print(f"Exchange between {player} and "
+              f"{'the bank' if other_player == BANK_PLAYER_FOR_EXCHANGE else str(other_player)}:", self)
         self.apply_one(player)
         if not other_player == BANK_PLAYER_FOR_EXCHANGE:
             self.inverse().apply_one(other_player)

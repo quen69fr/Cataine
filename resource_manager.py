@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import pygame.gfxdraw
+import pygame
 
 from color import Color
 from construction import ConstructionKind
-from rendering_functions import render_text
+from rendering_functions import render_text, render_road
 from resource import Resource
 from dev_cards import DevCard
 
@@ -92,14 +92,7 @@ class ResourceManager:
             # Road
             road = pygame.Surface((55, 30))
             road.fill((255, 255, 255))
-            p1 = (48, 8)
-            p2 = (8, 21)
-            pygame.draw.line(road, (0, 0, 0), p1, p2, ResourceManager.ROAD_WIDTH + 2 - 1)
-            pygame.gfxdraw.filled_circle(road, p1[0], p1[1], ResourceManager.ROAD_WIDTH // 2, (0, 0, 0))
-            pygame.gfxdraw.filled_circle(road, p2[0], p2[1], ResourceManager.ROAD_WIDTH // 2, (0, 0, 0))
-            pygame.draw.line(road, color.value, p1, p2, ResourceManager.ROAD_WIDTH - 2 - 1)
-            pygame.gfxdraw.filled_circle(road, p1[0], p1[1], ResourceManager.ROAD_WIDTH // 2 - 2, color.value)
-            pygame.gfxdraw.filled_circle(road, p2[0], p2[1], ResourceManager.ROAD_WIDTH // 2 - 2, color.value)
+            render_road(road, (48, 8), (8, 21), ResourceManager.ROAD_WIDTH, color.value)
             ResourceManager.CONSTRUCTIONS[ConstructionKind.ROAD][color] = road
 
         # make the circles around the dice numbers

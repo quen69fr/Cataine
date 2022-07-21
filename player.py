@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Generator
 from typing import TYPE_CHECKING
+from abc import abstractmethod
 
 import pygame
 
@@ -13,9 +14,10 @@ from color import Color
 from construction import Construction, ConstructionKind
 from probability import get_expectation_of_intersection, get_probability_to_roll
 from rendering_functions import render_text
-from strategy import StrategyExplorer
+from tile import Tile
 from tile_intersection import TileIntersection
 from tile_path import TilePath
+from exchange import Exchange
 
 if TYPE_CHECKING:
     from board import Board
@@ -33,27 +35,39 @@ class Player:
         self.dev_cards: list[DevCard] = []
         self.dev_cards_revealed: list[DevCard] = []
         self.board = board
-        self.strategy = StrategyExplorer(self.board, self)
 
-    def play(self, other_players: list[Player]):
-        self.strategy.play(other_players)
+        self.num_cards_to_remove_for_thief = 0
+        self.exchanges: None | list[Exchange] = None  # TODO
+        self.exchange_asked: Exchange | None = None
+        self.exchange_accepted = False
 
-    def place_initial_colony(self, take_resources: bool = False):
-        self.strategy.place_initial_colony(take_resources)
+    def place_initial_colony(self, intersection: TileIntersection):
+        intersection.content = Construction(kind=ConstructionKind.COLONY, player=self)
 
-    def place_initial_road(self):
-        self.strategy.place_road_around_initial_colony()
+        if self.num_colonies_belonging_to_player() == 2:
+            for tile in intersection.neighbour_tiles:
+                if not tile.resource == Resource.DESERT:
+                    self.resource_cards.add_one(tile.resource)
 
-    def remove_cards_for_thief(self):
+    def place_initial_road(self, path: TilePath):
+        path.road_player = self
+
+    def move_thief_match_num_cards(self):
         num_cards = sum(self.resource_cards.values())
         if num_cards > NUM_CARD_MAX_THIEF:
-            self.strategy.remove_cards_thief((num_cards + 1) // 2)
+            self.num_cards_to_remove_for_thief = num_cards // 2
 
-    def move_thief(self):
-        self.strategy.move_thief()
+    def remove_cards_for_thief(self, new_resource_hand_cards: ResourceHandCount):
+        self.resource_cards = new_resource_hand_cards
+        self.num_cards_to_remove_for_thief = 0
 
-    def steal_card(self):
-        self.strategy.steal_card()
+    def move_thief(self, tile: Tile):
+        self.board.thief_tile = tile
+
+    def steal_card(self, player: Player | None):
+        res = player.resource_cards.random_resource()
+        self.resource_cards.add_one(res)
+        player.resource_cards.try_consume_one(res)
 
     def can_steal(self):
         for inter in self.board.thief_tile.intersections:
@@ -63,6 +77,26 @@ class Player:
             if not player == self and not sum(player.resource_cards.values()) == 0:
                 return True
         return False
+
+    def propose_exchanges(self, exchanges: list[Exchange]):
+        self.exchanges = exchanges
+
+    def accept_exchange(self):
+        self.exchange_accepted = True
+
+    def reject_exchange(self):
+        self.exchange_asked = None
+
+    def ask_for_exchange(self, exchange: Exchange):
+        if self.has_resources_to_exchange(exchange):
+            self.exchange_asked = exchange
+            self.exchange_accepted = False
+            return True
+        return False
+
+    def exchange_asked_done(self):
+        self.exchange_asked = None
+        self.exchange_accepted = False
 
     def find_all_intersection_belonging_to_player(self) -> Generator[TileIntersection, None, None]:
         for inte in self.board.intersections:
@@ -185,6 +219,42 @@ class Player:
                     return inter
         assert False
 
+    def has_resources_to_exchange(self, exchange: Exchange):
+        return self.resource_cards.has(exchange.lost)
+
+    def can_exchange_with_the_bank(self, exchange: Exchange) -> bool:
+        # We look for the ports
+        ports = list(self.get_ports())
+        # 2 for 1
+        if 2 * sum(exchange.gain.values()) == sum(exchange.lost.values()):
+            possible = True
+            for res, num in exchange.lost:
+                if not (num % 2 == 0 and (num == 0 or res in ports)):
+                    possible = False
+                    break
+            if possible:
+                return True
+
+        # 3 for 1
+        if Resource.P_3_FOR_1 in ports and 3 * sum(exchange.gain.values()) == sum(exchange.lost.values()):
+            possible = True
+            for _, num in exchange.lost:
+                if not num % 3 == 0:
+                    possible = False
+                    break
+            if possible:
+                return True
+        # 4 for 1
+        if 4 * sum(exchange.gain.values()) == sum(exchange.lost.values()):
+            possible = True
+            for _, num in exchange.lost:
+                if not num % 4 == 0:
+                    possible = False
+                    break
+            if possible:
+                return True
+        return False
+
     def __repr__(self):
         return f"<Player {self.color.name}>"
     
@@ -201,6 +271,47 @@ class Player:
         for res, num in self.resource_cards.items():
             render_text(screen, f"{res}: {num}", x, y, 30, (0, 0, 0), False)
             y += 40
+
+
+class PlayerManager:
+    def __init__(self, player: Player):
+        self.player = player
+
+    @abstractmethod
+    def play(self) -> bool:
+        pass
+
+    @abstractmethod
+    def place_initial_colony(self) -> bool:
+        pass
+
+    @abstractmethod
+    def place_initial_road(self) -> bool:
+        pass
+
+    @abstractmethod
+    def remove_cards_for_thief(self) -> bool:
+        pass
+
+    @abstractmethod
+    def move_thief(self) -> bool:
+        pass
+
+    @abstractmethod
+    def steal_card(self) -> bool:
+        pass
+
+    @abstractmethod
+    def accept_exchange(self) -> bool:
+        pass
+
+    @abstractmethod
+    def throw_dice(self) -> bool:
+        pass
+
+    @abstractmethod
+    def get_resources(self) -> bool:
+        pass
 
 
 def neighbour_tiles_expectation(intersection: TileIntersection):

@@ -40,7 +40,7 @@ class TileIntersection:
         screen.blit(img, (x - img.get_width() / 2, y - img.get_height() / 2))
 
     def position(self, x0: int, y0: int):
-        x = x0 + self.x * (ResourceManager.TILE_WIDTH/2)
+        x = x0 + self.x * ResourceManager.TILE_WIDTH // 2
         y = y0 + (ResourceManager.TILE_HEIGHT - ResourceManager.TILE_HAT_HEIGHT) * (self.y // 2) + \
             ResourceManager.TILE_HAT_HEIGHT * (self.y % 2)
         return x, y

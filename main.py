@@ -7,41 +7,57 @@ import pygame
 from resource_manager import ResourceManager
 from game import Game
 from render_game import RenderGame
-
-random.seed(1)
-pygame.init()
-clock = pygame.time.Clock()
-
-ResourceManager.load()
-
-game = Game()
-render_game = RenderGame(game)
-# pygame.key.set_repeat(250, 10)
-
-# for _ in range(100):
-#     game.halfturn()
-
-
-def main():
-    while True:
-        clock.tick(60)
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                return
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE:
-                    game.next_turn_step_ia()
-                    # game.complete_turn_ai()
-                elif event.key == pygame.K_ESCAPE:
-                    return
-                elif event.key == pygame.K_TAB:
-                    render_game.change_main_player()
-
-        render_game.render()
-        pygame.display.flip()
+from player import Player, PlayerManager
+from ia_player import IaPlayer
+from manual_player import ManualPlayer
 
 
 if __name__ == "__main__":
-    main()
+    random.seed(1)
+    pygame.init()
+    clock = pygame.time.Clock()
+
+    ResourceManager.load()
+
+    game = Game(["Mathieu", "Quentin", "Juliette", "Sarah"])
+
+    player_managers: dict[Player, PlayerManager] = {
+        player: IaPlayer(player) for player in game.players
+    }
+
+    render_game = RenderGame(game, game.players[0], player_managers[game.players[0]])
+
+    running = True
+
+    while running:
+        for player_manager in player_managers.values():
+            if isinstance(player_manager, ManualPlayer):
+                player_manager.clic = False
+            # elif isinstance(player_manager, IaPlayer):
+            #     player_manager.play_next_step = False
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+                break
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    for player_manager in player_managers.values():
+                        if isinstance(player_manager, IaPlayer):
+                            player_manager.play_next_step = True
+                elif event.key == pygame.K_ESCAPE:
+                    running = False
+                    break
+                elif event.key == pygame.K_TAB:
+                    new_player = game.players[(game.players.index(render_game.main_player) + 1) % len(game.players)]
+                    render_game.change_main_player(new_player, player_managers[new_player])
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                render_game.clic_event()
+
+        game.play(player_managers)
+        render_game.update_rendering()
+        render_game.render()
+        pygame.display.flip()
+        clock.tick(60)
+
     pygame.quit()

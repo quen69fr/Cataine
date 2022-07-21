@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 import pygame.gfxdraw
 
-from color import COLOR_ROAD_EDGES
 from resource_manager import ResourceManager
 from tile_intersection import TileIntersection
 
@@ -44,13 +43,13 @@ class TilePath:
         start = self.intersections[0].position(x0, y0)
         end = self.intersections[1].position(x0, y0)
         if self.road_player is None:
-            pygame.draw.aaline(screen, COLOR_ROAD_EDGES, start, end, 1)
+            pygame.draw.aaline(screen, (0, 0, 0), start, end, 1)
         else:
-            pygame.draw.line(screen, COLOR_ROAD_EDGES, start, end, ResourceManager.ROAD_WIDTH + 2)
+            pygame.draw.line(screen, (0, 0, 0), start, end, ResourceManager.ROAD_WIDTH + 2)
             pygame.gfxdraw.filled_circle(screen, int(start[0]), int(start[1]),
-                                         ResourceManager.ROAD_WIDTH // 2, COLOR_ROAD_EDGES)
+                                         ResourceManager.ROAD_WIDTH // 2, (0, 0, 0))
             pygame.gfxdraw.filled_circle(screen, int(end[0]), int(end[1]),
-                                         ResourceManager.ROAD_WIDTH // 2, COLOR_ROAD_EDGES)
+                                         ResourceManager.ROAD_WIDTH // 2, (0, 0, 0))
 
     def render_second_layer(self, x0: int, y0: int, screen: pygame.Surface):
         if self.road_player is None:

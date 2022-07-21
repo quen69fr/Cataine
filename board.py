@@ -5,6 +5,7 @@ from random import shuffle
 
 from resource import Resource, BOARD_PORT_INDEXES_PATHS, BOARD_PORT_DIRECTION
 from dev_cards import DevCard, NUM_DEV_CARDS
+from resource_manager import ResourceManager
 from constants import LIST_TILES_COORDS, LIST_TILES_INTERSECTIONS_COORDS, THIEF_INITIAL_TILE
 from tile import Tile
 from tile_intersection import TileIntersection
@@ -69,6 +70,29 @@ class Board:
                 create_path(first_inter, previous_inter)
         for index, resource, direction in zip(BOARD_PORT_INDEXES_PATHS, list_ports_resources, BOARD_PORT_DIRECTION):
             self.paths[index].add_port(resource, direction)
+
+    def mouse_on_intersection(self, x0: int, y0: int, x_mouse: int, y_mouse: int) -> TileIntersection | None:
+        for inter in self.intersections:
+            x, y = inter.position(x0, y0)
+            if (x - x_mouse) ** 2 + (y - y_mouse) ** 2 <= ResourceManager.TILE_PATH_LENGTH ** 2 / 4:
+                return inter
+        return None
+
+    def mouse_on_tile(self, x0: int, y0: int, x_mouse: int, y_mouse: int) -> Tile | None:
+        for tile in self.tiles:
+            x, y = tile.position(x0, y0)
+            if (x + ResourceManager.TILE_WIDTH // 2 - x_mouse) ** 2 + \
+                    (y + ResourceManager.TILE_HEIGHT // 2 - y_mouse) ** 2 <= ResourceManager.TILE_WIDTH ** 2 / 4:
+                return tile
+        return None
+
+    def mouse_on_path(self, x0: int, y0: int, x_mouse: int, y_mouse: int) -> TilePath | None:
+        for path in self.paths:
+            x1, y1 = path.intersections[0].position(x0, y0)
+            x2, y2 = path.intersections[1].position(x0, y0)
+            if (x1 + x2 - 2 * x_mouse) ** 2 + (y1 + y2 - 2 * y_mouse) ** 2 <= ResourceManager.TILE_WIDTH ** 2 / 4:
+                return path
+        return None
 
     def render(self, x0: int, y0: int, screen: pygame.Surface):
         for tile in self.tiles:

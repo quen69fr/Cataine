@@ -9,4 +9,4 @@ class Color(Enum):
     RED = (255, 0, 0)
 
 
-COLOR_ROAD_EDGES = BLACK = (0, 0, 0)
+COLORS_ORDER = [Color.BLUE, Color.ORANGE, Color.WHITE, Color.RED]

@@ -2,29 +2,17 @@
 import pygame.gfxdraw
 from math import cos, sin, pi
 
+from rendering_constants import *
 from constants import NUM_VICTORY_POINTS_FOR_VICTORY
 from game import Game, GameState, GamePlayingState, GamePlacingColoniesState
 from color import Color
-from player import Player
+from player import Player, PlayerManager
+from manual_player import WIDTH_PLAYER_SIDE, X_BOARD, Y_BOARD, ManualPlayer
 from dev_cards import DevCard
 from resource import Resource
 from resource_manager import ResourceManager
 from rendering_functions import render_text
 from construction import ConstructionKind, NUM_CONSTRUCTION_MAX
-
-
-WIDTH = 1360
-HEIGHT = 700
-WIDTH_PLAYER_SIDE = 615
-Y_BOARD = 44
-MARGINS = 8
-HEIGHT_TITLE = 130
-HEIGHT_ACTIONS_BOX = 80
-Y_BUTTONS_IN_MAIN_PLAYER_BOX = 225
-HEIGHT_BUTTONS_IN_MAIN_PLAYER_BOX = 40
-WIDTH_BUTTON_ACTION = 260
-HEIGHT_BUTTON_ACTION = 40
-SIZE_DICE = 60
 
 
 def x_position_after_dice() -> int:
@@ -37,15 +25,20 @@ def position_button_action() -> (int, int):
 
 
 class RenderGame:
-    def __init__(self, game: Game):
+    def __init__(self, game: Game, player: Player, player_manager: PlayerManager):
         self.game: Game = game
-        self.main_player: Player = self.game.players[0]
-
+        self.main_player: Player = player
+        self.main_player_manager = player_manager
         self.screen: pygame.Surface = pygame.display.set_mode((WIDTH, HEIGHT))
 
-    def change_main_player(self):
-        self.main_player = self.game.players[(self.game.players.index(self.main_player) + 1) % len(self.game.players)]
-    
+    def clic_event(self):
+        if isinstance(self.main_player_manager, ManualPlayer):
+            self.main_player_manager.clic = True
+
+    def change_main_player(self, player: Player, player_manager: PlayerManager):
+        self.main_player: Player = player
+        self.main_player_manager = player_manager
+
     def rectangle(self, x: int, y: int, width: int, height: int):
         self.screen.fill((0, 0, 0), (x, y, width, height))
         self.screen.fill((255, 255, 255), (x + 3, y + 3, width - 6, height - 6))
@@ -98,12 +91,19 @@ class RenderGame:
             render_point(x + m, y + SIZE_DICE // 2)
             render_point(x + SIZE_DICE - m, y + SIZE_DICE // 2)
 
+    def update_rendering(self):
+        if isinstance(self.main_player_manager, ManualPlayer):
+            pass  # TODO
+
     def render(self):
         self.screen.blit(ResourceManager.BACKGROUND, (0, 0))
+        self.game.board.render(X_BOARD, Y_BOARD, self.screen)
         self.render_title()
         self.render_actions_box()
         self.render_players()
-    
+        if isinstance(self.main_player_manager, ManualPlayer) and self.game.get_current_player() == self.main_player:
+            self.main_player_manager.render_my_turn(self.screen, self.game.game_state, self.game.game_sub_state)
+
     def render_title(self):
         self.rectangle(MARGINS, MARGINS, WIDTH_PLAYER_SIDE - MARGINS, HEIGHT_TITLE)
         x_center = (WIDTH_PLAYER_SIDE + MARGINS) // 2
@@ -181,7 +181,6 @@ class RenderGame:
         y_players = HEIGHT_TITLE + HEIGHT_ACTIONS_BOX + 3 * MARGINS
         size_secondary_player = (HEIGHT - y_players) // 3 - MARGINS
 
-        self.game.board.render(WIDTH_PLAYER_SIDE + 10, Y_BOARD, self.screen)
         y = y_players
         for i, player in enumerate(self.game.players):
             if player == self.main_player:
