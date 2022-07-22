@@ -77,6 +77,16 @@ class Player:
                 return True
         return False
 
+    def can_steal_player(self, player: Player):
+        if player == self or sum(player.resource_cards.values()) == 0:
+            return False
+        for inter in self.board.thief_tile.intersections:
+            if inter.content is None:
+                continue
+            if player == inter.content.player:
+                return True
+        return False
+
     def propose_exchanges(self, exchanges: list[Exchange]):
         self.exchanges = exchanges
 

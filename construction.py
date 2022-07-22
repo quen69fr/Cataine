@@ -14,7 +14,7 @@ class ConstructionKind(Enum):
     TOWN = 2
 
 
-NUM_CONSTRUCTION_MAX = {  # TODO
+NUM_CONSTRUCTION_MAX = {
     ConstructionKind.ROAD: 15,
     ConstructionKind.COLONY: 5,
     ConstructionKind.TOWN: 4

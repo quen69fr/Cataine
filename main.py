@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import random
-
 import pygame
 
 from resource_manager import ResourceManager
@@ -13,7 +11,7 @@ from manual_player import ManualPlayer
 
 
 if __name__ == "__main__":
-    random.seed(1)
+    # random.seed(1)
     pygame.init()
     clock = pygame.time.Clock()
 
@@ -22,20 +20,28 @@ if __name__ == "__main__":
     game = Game(["Mathieu", "Quentin", "Juliette", "Sarah"])
 
     player_managers: dict[Player, PlayerManager] = {
-        player: IaPlayer(player) for player in game.players[1:]
+        player: IaPlayer(player) for player in game.players
     }
     player_managers[game.players[0]] = ManualPlayer(game.players[0])
+
+    # ia_play_with_space = False
+    ia_play_with_space = True
 
     render_game = RenderGame(game, game.players[0], player_managers[game.players[0]])
 
     running = True
 
+    if not ia_play_with_space:
+        for player_manager in player_managers.values():
+            if isinstance(player_manager, IaPlayer):
+                player_manager.play_next_step = True
+
     while running:
         for player_manager in player_managers.values():
             if isinstance(player_manager, ManualPlayer):
                 player_manager.clic = False
-            # elif isinstance(player_manager, IaPlayer):
-            #     player_manager.play_next_step = False
+            elif ia_play_with_space and isinstance(player_manager, IaPlayer):
+                player_manager.play_next_step = False
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -43,9 +49,10 @@ if __name__ == "__main__":
                 break
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    for player_manager in player_managers.values():
-                        if isinstance(player_manager, IaPlayer):
-                            player_manager.play_next_step = True
+                    if ia_play_with_space:
+                        for player_manager in player_managers.values():
+                            if isinstance(player_manager, IaPlayer):
+                                player_manager.play_next_step = True
                 elif event.key == pygame.K_ESCAPE:
                     running = False
                     break

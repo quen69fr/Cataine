@@ -3,6 +3,7 @@ from __future__ import annotations
 import pygame
 from typing import TYPE_CHECKING
 
+from resource import Resource
 from rendering_constants import *
 from rendering_functions import alpha_image, render_road
 from resource_hand_count import ResourceHandCount, ORDER_RESOURCES
@@ -10,7 +11,7 @@ from resource_manager import ResourceManager
 from construction import Construction, ConstructionKind
 from actions import Action, ActionBuildRoad, ActionBuildColony, ActionBuildTown, ActionBuyDevCard
 from player import Player, PlayerManager
-from exchange import Exchange
+from exchange import Exchange, BANK_PLAYER_FOR_EXCHANGE
 from game_states import GameState, GamePlayingState, GamePlacingColoniesState
 
 if TYPE_CHECKING:
@@ -20,8 +21,8 @@ if TYPE_CHECKING:
 class ManualPlayer(PlayerManager):
     def __init__(self, player: Player):
         PlayerManager.__init__(self, player)
-        self.selected_cards: list[int] = []  # TODO
-        self.last_hand_cards: ResourceHandCount = ResourceHandCount()  # TODO
+        self.selected_cards: list[int] = []
+        self.last_hand_cards: ResourceHandCount = ResourceHandCount()
         self.render_game: RenderGame | None = None
 
         self.ongoing_construction: ConstructionKind | None = None
@@ -34,11 +35,25 @@ class ManualPlayer(PlayerManager):
         if not self.clic or self.render_game is None:
             return False
 
-        # Ongoing construction
-        action = self.action_ongoing_construction()
-        if action is not None and action.available():
-            action.apply()
-            self.ongoing_construction = None
+        if self.ongoing_construction is not None:
+            action = self.action_ongoing_construction()
+            if action is not None and action.available():
+                action.apply()
+                self.ongoing_construction = None
+                return False
+        elif self.ongoing_bank_exchange is not None:
+            x, y = position_bank_resource_exchange()
+            res = self.render_game.clic_on_bank_resource(x, y)
+            if res is not None:
+                self.ongoing_bank_exchange.gain.add_one(res)
+                self.ongoing_bank_exchange.apply(self.player, BANK_PLAYER_FOR_EXCHANGE)
+                self.ongoing_bank_exchange = None
+                return False
+        elif self.ongoing_exchange is not None:
+            if self.play_ongoing_exchanges():
+                self.player.propose_exchanges([self.ongoing_exchange])
+                self.ongoing_exchange = None
+                return False
 
         self.play_player_buttons()
 
@@ -66,9 +81,27 @@ class ManualPlayer(PlayerManager):
         if i is not None:
             if i == 0:
                 self.construction_button()
+            elif i == 1:
+                self.bank_button()
             else:
-                pass  # TODO
+                self.exchange_button()
         return self.render_game.clic_on_action_button()
+
+    def play_ongoing_exchanges(self):
+        assert self.ongoing_exchange is not None
+        x, y = position_resources_exchange_box()
+        res = self.render_game.clic_on_bank_resource(x, y)
+        if res is not None:
+            self.ongoing_exchange.gain.add_one(res)
+        i = self.render_game.clic_on_exchange_button()
+        if i is None:
+            return False
+        if i == 0:
+            self.ongoing_exchange = None
+            return False
+        if not sum(self.ongoing_exchange.gain.values()) > 0:
+            return False
+        return True
 
     def construction_button(self):
         if self.ongoing_construction is None:
@@ -83,6 +116,39 @@ class ManualPlayer(PlayerManager):
                 pass  # TODO
         else:
             self.ongoing_construction = None
+
+    def bank_button(self):
+        if self.ongoing_bank_exchange is None:
+            if len(self.selected_cards) < 2 or len(self.selected_cards) > 4:
+                return
+
+            list_cards = list(self.player.resource_cards.list_resources())
+            res = list_cards[self.selected_cards[0]]
+            for i in self.selected_cards:
+                if not res == list_cards[i]:
+                    return
+
+            ports = self.player.get_ports()
+            if len(self.selected_cards) == 2 and res not in ports:
+                return
+            if Resource.P_3_FOR_1 in ports:
+                if len(self.selected_cards) == 4:
+                    return
+            else:
+                if len(self.selected_cards) == 3:
+                    return
+
+            self.ongoing_bank_exchange = Exchange(ResourceHandCount(), self.get_selected_resource_cards())
+        else:
+            self.ongoing_bank_exchange = None
+
+    def exchange_button(self):
+        if self.ongoing_exchange is None:
+            if len(self.selected_cards) == 0:
+                return
+            self.ongoing_exchange = Exchange(ResourceHandCount(), self.get_selected_resource_cards())
+        else:
+            self.ongoing_exchange = None
 
     def place_initial_colony(self):
         if not self.clic or self.render_game is None:
@@ -136,19 +202,24 @@ class ManualPlayer(PlayerManager):
         if not self.clic or self.render_game is None:
             return False
         player = self.render_game.clic_on_secondary_players()
-        if player is None or sum(player.resource_cards.values()) == 0:
+        if player is None:
+            return False
+        if not self.player.can_steal_player(player):
             return False
         self.player.steal_card(player)
         return True
 
     def accept_exchange(self):
-        # ----------- TEMP -----------
-        self.player.reject_exchange()
-        return True
-        # ----------- TEMP -----------
         if not self.clic or self.render_game is None:
             return False
-        return True  # TODO
+        i = self.render_game.clic_on_exchange_button()
+        if i is None:
+            return False
+        if i == 0:
+            self.player.reject_exchange()
+        else:
+            self.player.accept_exchange()
+        return True
 
     def throw_dice(self):
         if not self.clic or self.render_game is None:
@@ -176,12 +247,15 @@ class ManualPlayer(PlayerManager):
         n2 = 0
         for res in ORDER_RESOURCES:
             num_cards_to_remove = max(0, self.last_hand_cards[res] - self.player.resource_cards[res])
+            shift = 0
             while old_selected_cards and old_selected_cards[0] < n + self.last_hand_cards[res]:
                 num = old_selected_cards.pop(0)
-                if num_cards_to_remove > 0:
-                    num_cards_to_remove -= 1
-                else:
-                    self.selected_cards.append(num - n + n2)
+                if num - n - shift < self.player.resource_cards[res]:
+                    if num_cards_to_remove > 0:
+                        num_cards_to_remove -= 1
+                        shift += 1
+                    else:
+                        self.selected_cards.append(num - shift - n + n2)
             n += self.last_hand_cards[res]
             n2 += self.player.resource_cards[res]
             if self.last_hand_cards[res] < self.player.resource_cards[res]:
@@ -192,14 +266,17 @@ class ManualPlayer(PlayerManager):
     def update_rendering(self):
         self.update_selected_cards()
         if self.clic and self.render_game is not None:
-            x, y = position_hand_resource_cards()
-            index_card = self.render_game.clic_cards(sum(self.player.resource_cards.values()), x, y,
-                                                     ANGLE_MAX_CARDS_RESOURCE)
-            if index_card is not None:
-                if index_card in self.selected_cards:
-                    self.selected_cards.remove(index_card)
-                else:
-                    self.add_selected_card(index_card)
+            if self.ongoing_construction is None \
+                    and self.ongoing_bank_exchange is None \
+                    and self.ongoing_exchange is None:
+                x, y = position_hand_resource_cards()
+                index_card = self.render_game.clic_cards(sum(self.player.resource_cards.values()), x, y,
+                                                         ANGLE_MAX_CARDS_RESOURCE)
+                if index_card is not None:
+                    if index_card in self.selected_cards:
+                        self.selected_cards.remove(index_card)
+                    else:
+                        self.add_selected_card(index_card)
 
     def add_selected_card(self, index_card: int):
         i = 0
@@ -225,6 +302,8 @@ class ManualPlayer(PlayerManager):
                         self.render_build_town(screen)
             elif game_sub_state == GamePlayingState.MOVE_THIEF:
                 self.render_move_thief(screen)
+            elif game_sub_state == GamePlayingState.STEAL_CARD:
+                self.render_steal_card(screen)
 
     def render_build_road(self, screen: pygame.Surface):
         x, y = pygame.mouse.get_pos()
@@ -272,4 +351,16 @@ class ManualPlayer(PlayerManager):
                 x, y = tile.position(X_BOARD, Y_BOARD)
                 x += ResourceManager.TILE_WIDTH // 2
                 y += ResourceManager.TILE_HEIGHT // 2
+            screen.blit(alpha_image(img, 150), (x - img.get_width() // 2, y - img.get_height() // 2))
+
+    def render_steal_card(self, screen: pygame.Surface):
+        x, y = pygame.mouse.get_pos()
+        if x < WIDTH_PLAYER_SIDE:
+            x_mouse, y_mouse = pygame.mouse.get_pos()
+            _, size = y_size_secondary_player()
+            for i, (xp, yp) in enumerate(position_secondary_players(len(self.render_game.game.players) - 1)):
+                if 0 <= x_mouse - xp <= size and 0 <= y_mouse - yp <= size:
+                    x, y = xp + size // 2, yp + size // 2
+                    break
+            img = ResourceManager.THIEF_IMAGE
             screen.blit(alpha_image(img, 150), (x - img.get_width() // 2, y - img.get_height() // 2))

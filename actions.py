@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from resource import Resource
 from dev_cards import DevCard
 from typing import TYPE_CHECKING
-from construction import Construction, ConstructionKind
+from construction import Construction, ConstructionKind, NUM_CONSTRUCTION_MAX
 from resource_hand_count import ResourceHandCount
 
 if TYPE_CHECKING:
@@ -54,6 +54,9 @@ class ActionBuildRoad(Action):
         if self.path.road_player is not None:
             return False
 
+        if self.player.num_roads_belonging_to_player() >= NUM_CONSTRUCTION_MAX[ConstructionKind.ROAD]:
+            return False
+
         # check if there is one of our colony/town around it
         def has_own_construction(intersection: TileIntersection):
             return intersection.content is not None and intersection.content.player == self.player
@@ -92,6 +95,9 @@ class ActionBuildColony(Action):
         if not self.intersection.can_build():
             return False
 
+        if self.player.num_colonies_belonging_to_player() >= NUM_CONSTRUCTION_MAX[ConstructionKind.COLONY]:
+            return False
+
         # check if there is one of our road around it
         for p in self.intersection.neighbour_paths:
             if p.road_player == self.player:
@@ -117,6 +123,8 @@ class ActionBuildTown(Action):
         self.player.resource_cards.add(self.cost)
 
     def available(self):
+        if self.player.num_towns_belonging_to_player() >= NUM_CONSTRUCTION_MAX[ConstructionKind.TOWN]:
+            return False
         return self.intersection.content == Construction(kind=ConstructionKind.COLONY, player=self.player)
 
 

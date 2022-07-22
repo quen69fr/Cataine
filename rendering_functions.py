@@ -39,12 +39,17 @@ def render_road(screen: pygame.Surface, p1: tuple[int, int], p2: tuple[int, int]
 
 
 def render_button(screen: pygame.Surface, x: int, y: int, width: int, height: int, text: str, size_text: int,
-                  selected: bool = False):
-    color_bounds = (0, 0, 0)
+                  selected: bool = False, unselectable: bool = False):
     if selected:
+        color_bounds = (0, 0, 0)
+        color_inside = (190, 190, 190)
+        color_text = (0, 0, 0)
+    elif unselectable:
+        color_bounds = (190, 190, 190)
         color_inside = (190, 190, 190)
         color_text = (0, 0, 0)
     else:
+        color_bounds = (0, 0, 0)
         color_inside = (0, 0, 0)
         color_text = (190, 190, 190)
     screen.fill(color_bounds, (x, y, width, height))
@@ -52,6 +57,15 @@ def render_button(screen: pygame.Surface, x: int, y: int, width: int, height: in
     render_text(screen, text, x + width // 2, y + height // 2, size_text, color_text)
 
 
-def render_rectangle(screen: pygame.Surface, x: int, y: int, width: int, height: int):
+def render_rectangle(screen: pygame.Surface, x: int, y: int, width: int, height: int, left_arrow: bool = False,
+                     bottom_arrow: bool = False):
     screen.fill((0, 0, 0), (x, y, width, height))
     screen.fill((255, 255, 255), (x + 3, y + 3, width - 6, height - 6))
+    if left_arrow:
+        ps = [(x - 8, y + height // 2), (x, y + height // 2 - 8), (x, y + height // 2 + 8)]
+        pygame.draw.polygon(screen, (0, 0, 0), ps)
+        pygame.draw.polygon(screen, (255, 255, 255), [(a + 4, b) for a, b in ps])
+    if bottom_arrow:
+        ps = [(x + width // 2, y + height + 8), (x + width // 2 - 8, y + height), (x + width // 2 + 8, y + height)]
+        pygame.draw.polygon(screen, (0, 0, 0), ps)
+        pygame.draw.polygon(screen, (255, 255, 255), [(a, b - 4) for a, b in ps])

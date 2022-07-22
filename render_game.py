@@ -8,8 +8,9 @@ from color import Color
 from player import Player, PlayerManager
 from manual_player import WIDTH_PLAYER_SIDE, X_BOARD, Y_BOARD, ManualPlayer
 from dev_cards import DevCard
-from resource import Resource
+from resource import Resource, ORDER_RESOURCES
 from resource_manager import ResourceManager
+from exchange import Exchange
 from rendering_functions import render_text, render_rectangle, render_button
 from construction import ConstructionKind, NUM_CONSTRUCTION_MAX
 
@@ -52,7 +53,7 @@ class RenderGame:
     def clic_on_main_player_buttons(self):
         x_mouse, y_mouse = pygame.mouse.get_pos()
         for i, (x, y, width, height) in enumerate(rect_buttons_main_player()):
-            if 0 <= x_mouse - x <= WIDTH_BUTTON_ACTION and 0 <= y_mouse - y <= HEIGHT_BUTTON_ACTION:
+            if 0 <= x_mouse - x <= width and 0 <= y_mouse - y <= height:
                 return i
         return None
 
@@ -65,7 +66,8 @@ class RenderGame:
 
         self.screen.blit(image, (int(x_center - image.get_width() / 2), int(y_center - image.get_height() / 2)))
 
-    def render_cards(self, cards: list[Resource | DevCard], x: int, y: int, angle_max: float):
+    def render_cards(self, cards: list[Resource | DevCard], x: int, y: int, angle_max: float,
+                     selected_cards: list[int] = None):
         num_cards = len(cards)
         if num_cards == 0:
             return
@@ -75,8 +77,7 @@ class RenderGame:
         a = (num_cards / 2 - 0.5) * da
         for i, card in enumerate(cards):
             r = RADIUS_CARDS_HAND
-            if isinstance(self.main_player_manager, ManualPlayer) \
-                    and i in self.main_player_manager.selected_cards:
+            if selected_cards is not None and i in selected_cards:
                 r = RADIUS_CARDS_HAND_SELECTED
             self.render_card(card, x, y, a, r)
             a -= da
@@ -132,6 +133,28 @@ class RenderGame:
             render_point(x + m, y + SIZE_DICE // 2)
             render_point(x + SIZE_DICE - m, y + SIZE_DICE // 2)
 
+    def render_bank(self, x: int, y: int, left_arrow_otherwise_bottom: bool):
+        width, height = dim_bank_resource()
+        render_rectangle(self.screen, x, y, width, height,
+                         left_arrow=left_arrow_otherwise_bottom, bottom_arrow=not left_arrow_otherwise_bottom)
+        x += MARGINS
+        y += MARGINS
+        for res in ORDER_RESOURCES:
+            self.screen.blit(ResourceManager.CARDS_RESOURCES_AND_DEV[res], (x, y))
+            x += MARGINS + ResourceManager.CARD_WIDTH
+
+    def clic_on_bank_resource(self, x: int, y: int):
+        x_mouse, y_mouse = pygame.mouse.get_pos()
+        width, height = dim_bank_resource()
+        render_rectangle(self.screen, x, y, width, height)
+        x += MARGINS
+        y += MARGINS
+        for res in ORDER_RESOURCES:
+            if 0 <= x_mouse - x <= ResourceManager.CARD_WIDTH and 0 <= y_mouse - y <= ResourceManager.CARD_HEIGHT:
+                return res
+            x += MARGINS + ResourceManager.CARD_WIDTH
+        return None
+
     def update_rendering(self):
         if isinstance(self.main_player_manager, ManualPlayer):
             self.main_player_manager.update_rendering()
@@ -148,7 +171,7 @@ class RenderGame:
     def render_title(self):
         render_rectangle(self.screen, MARGINS, MARGINS, WIDTH_PLAYER_SIDE - MARGINS, HEIGHT_TITLE)
         x_center = (WIDTH_PLAYER_SIDE + MARGINS) // 2
-        render_text(self.screen, 'CATANE', x_center, HEIGHT_TITLE // 2 - 3, 130, (50, 50, 50))
+        render_text(self.screen, 'CATAINE', x_center, HEIGHT_TITLE // 2 - 3, 130, (50, 50, 50))
         if self.game.game_state == GameState.PLACING_COLONIES:
             text = 'Placement'
         elif self.game.game_state == GameState.PLAYING:
@@ -225,6 +248,26 @@ class RenderGame:
             color = (0, 0, 0) if current_player.color == Color.WHITE else current_player.color.value
             render_text(self.screen, text, x_center, y + height // 2, 35, color)
 
+    def render_exchange_box(self, exchange: Exchange, proposal: bool, ongoing_proposal: bool = False):
+        x_box, y_box = position_exchange_box()
+        render_rectangle(self.screen, x_box, y_box, WIDTH_EXCHANGE_BOX, HEIGHT_EXCHANGE_BOX, left_arrow=True)
+        x1, x2 = xs_cards_exchange_box()
+        for x, cards, text in [(x1, list(exchange.lost.list_resources()), "Donner"),
+                               (x2, list(exchange.gain.list_resources()), "Recevoir")]:
+            render_text(self.screen, text, x, y_box + MARGINS + 15, 30)
+            self.render_cards(cards, x, y_box + Y_CARDS_IN_EXCHANGE_BOX, ANGLE_MAX_CARDS_DEV_AND_EXCHANGE)
+        if not proposal or ongoing_proposal:
+            texts = ["Annuler", "Proposer"] if ongoing_proposal else ["Refuser", "Accepter"]
+            for (xb, yb, wb, hb), text in zip(rect_buttons_exchange_box(), texts):
+                render_button(self.screen, xb, yb, wb, hb, text, 30, unselectable=True)
+        if ongoing_proposal:
+            x, y = position_resources_exchange_box()
+            self.render_bank(x, y, False)
+        elif proposal:
+            _, yb, _, hb = rect_buttons_exchange_box()[0]
+            render_text(self.screen, "En attente de réponse...", x_box + WIDTH_EXCHANGE_BOX // 2, yb + hb // 2,
+                        30, (100, 100, 100))
+
     def render_buttons_main_player(self):
         if isinstance(self.main_player_manager, ManualPlayer):
             selected_list = [
@@ -234,10 +277,32 @@ class RenderGame:
             ]
         else:
             selected_list = [False, False, False]
+        if self.main_player.exchange_asked is not None:
+            selected_list[2] = True
         for (x, y, width, height), text, selected in zip(rect_buttons_main_player(),
                                                          ["Construire", "Banque", "Echanger"],
                                                          selected_list):
             render_button(self.screen, x, y, width, height, text, 30, selected)
+
+        if isinstance(self.main_player_manager, ManualPlayer):
+            if self.main_player_manager.ongoing_bank_exchange is not None:
+                x, y = position_bank_resource_exchange()
+                self.render_bank(x, y, True)
+            elif self.main_player_manager.ongoing_exchange is not None:
+                self.render_exchange_box(self.main_player_manager.ongoing_exchange, True, True)
+        if self.main_player.exchange_asked is not None:
+            self.render_exchange_box(self.main_player.exchange_asked, False)
+        elif self.main_player == self.game.get_current_player():
+            for player in self.game.get_non_current_players():
+                if player.exchange_asked is not None:
+                    self.render_exchange_box(player.exchange_asked.inverse(), True)
+
+    def clic_on_exchange_button(self) -> int | None:
+        x_mouse, y_mouse = pygame.mouse.get_pos()
+        for i, (x, y, width, height) in enumerate(rect_buttons_exchange_box()):
+            if 0 <= x_mouse - x <= width and 0 <= y_mouse - y <= height:
+                return i
+        return None
 
     def render_players(self):
         y_players, size_secondary_player = y_size_secondary_player()
@@ -266,9 +331,6 @@ class RenderGame:
         render_text(self.screen, self.main_player.nickname.upper(), x + 8 + ResourceManager.PLAYER_LOGO.get_width(),
                     y + (ResourceManager.PLAYER_LOGO.get_height() - 34 // 2) // 2 + 5, 34, color, centred=False)
 
-        # Buttons
-        self.render_buttons_main_player()
-
         # Victory points
         m = 5
         n = (NUM_VICTORY_POINTS_FOR_VICTORY + 1) // 2
@@ -284,13 +346,16 @@ class RenderGame:
 
         # Resource cards
         x_cards, y_cards = position_hand_resource_cards()
+        selected_cards = None
+        if isinstance(self.main_player_manager, ManualPlayer):
+            selected_cards = self.main_player_manager.selected_cards
         self.render_cards(list(self.main_player.resource_cards.list_resources()), x_cards, y_cards,
-                          ANGLE_MAX_CARDS_RESOURCE)
+                          ANGLE_MAX_CARDS_RESOURCE, selected_cards=selected_cards)
 
         # Dev_card
         x_cards, y_cards = position_hand_dev_cards()
         self.render_cards(self.main_player.dev_cards, x_cards, y_cards,
-                          ANGLE_MAX_CARDS_DEV)
+                          ANGLE_MAX_CARDS_DEV_AND_EXCHANGE)
 
         # Constructions and dev cards
         y_construction = y + Y_BUTTONS_IN_MAIN_PLAYER_BOX + HEIGHT_BUTTONS_IN_MAIN_PLAYER_BOX
@@ -306,6 +371,9 @@ class RenderGame:
             render_text(self.screen, text, x + 100, y_construction, 40)
 
             y_construction += height_constructions
+
+        # Buttons
+        self.render_buttons_main_player()
 
     def render_player_secondary(self, player: Player, x: int, y: int, width: int, height: int):
         # Rectangle and player logo

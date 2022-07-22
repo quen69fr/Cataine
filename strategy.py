@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import TYPE_CHECKING
 
+from construction import ConstructionKind, NUM_CONSTRUCTION_MAX
 from actions import Action, ActionBuildColony, ActionBuildRoad, ActionBuildTown
 from board import Board
 from tile import Tile
@@ -40,6 +41,9 @@ class Objective:
 
 class ObjectiveBuildColony(Objective):
     def do(self, particular_starts: list[TileIntersection] = None):
+        # is there remaining colonies to build
+        if self.player.num_colonies_belonging_to_player() >= NUM_CONSTRUCTION_MAX[ConstructionKind.COLONY]:
+            return None
         # find where my roads are
         starts = particular_starts
         if starts is None:
@@ -54,10 +58,14 @@ class ObjectiveBuildColony(Objective):
         for start in starts:
             distances[start] = 0
 
+        num_roads_max = NUM_CONSTRUCTION_MAX[ConstructionKind.ROAD] - self.player.num_roads_belonging_to_player()
         q = starts
         while q:
             inte = q.pop(0)
             d = distances[inte] + 1
+            # is there enough remaining roads to build
+            if d > num_roads_max:
+                break
             for path in inte.neighbour_paths:
                 if path.road_player is not None:
                     continue
@@ -102,6 +110,9 @@ class ObjectiveBuildColony(Objective):
 
 class ObjectiveBuildTown(Objective):
     def do(self):
+        # is there remaining towns to build
+        if self.player.num_towns_belonging_to_player() >= NUM_CONSTRUCTION_MAX[ConstructionKind.TOWN]:
+            return None
         rank: dict[TileIntersection, float] = {}
         m = None
         for inte in self.player.find_all_colonies_belonging_to_player():
@@ -203,10 +214,11 @@ class StrategyExplorer(Strategy):
         obj = self._get_objective()
         cards_needed = ResourceHandCount()
         cards_useless = self.player.resource_cards.copy()
-        for res, num in obj.actions[0].cost.items():
-            for _ in range(num):
-                if not cards_useless.try_consume_one(res):
-                    cards_needed.add_one(res)
+        for action in obj.actions:
+            for res, num in action.cost.items():
+                for _ in range(num):
+                    if not cards_useless.try_consume_one(res):
+                        cards_needed.add_one(res)
 
         gains = list(cards_needed.subsets())
 

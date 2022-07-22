@@ -45,10 +45,10 @@ def mark_objective(player: Player, cost_no_modify: ResourceHandCount, initial_ga
         hand_after_cost_num_turns[res] -= count
         # assert hand_after_cost_num_turns[res] >= 0
 
-    gain = 100 * initial_gain
+    gain = 50 * initial_gain
     for res, count in hand_after_cost_num_turns.items():
         gain += count * prod_turns[res] * mark_resource(player, res)
-    return gain / (cost_num_turns + 1)
+    return gain ** 2 / (cost_num_turns + 1)
 
 
 def mark_resource(player: Player, resource: Resource):
