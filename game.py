@@ -122,7 +122,7 @@ class Game:
         assert not r == 7
         # Give resources to players
         for tile in self.board.tiles:
-            if tile.dice_number == r:
+            if tile.dice_number == r and not tile == self.board.thief_tile:
                 for inte in tile.intersections:
                     if inte.content is None:
                         continue

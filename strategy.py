@@ -231,7 +231,7 @@ class StrategyExplorer(Strategy):
                     continue
                 exchange = Exchange(gain, lost)
                 mark = self._mark_exchange(exchange)
-                if mark > 0:
+                if mark > 1:
                     marked_exchanges.append((exchange, mark))
 
         if len(marked_exchanges) == 0:

@@ -219,7 +219,7 @@ class RenderGame:
                 if self.main_player.num_cards_to_remove_for_thief > 0:
                     if (isinstance(self.main_player_manager, ManualPlayer)
                             and not len(self.main_player_manager.selected_cards) ==
-                            self.main_player.num_cards_to_remove_for_thief):
+                                    self.main_player.num_cards_to_remove_for_thief):
                         text = f"Vous devez jeter {self.main_player.num_cards_to_remove_for_thief} cartes."
                     else:
                         button = True
@@ -361,14 +361,23 @@ class RenderGame:
         y_construction = y + Y_BUTTONS_IN_MAIN_PLAYER_BOX + HEIGHT_BUTTONS_IN_MAIN_PLAYER_BOX
         height_constructions = (height + y - y_construction) // 4 - 3
         y_construction += height_constructions // 2
-        for image, text in [(ResourceManager.CONSTRUCTIONS[construction][self.main_player.color],
-                             f"{self.main_player.num_constructions_belonging_to_player(construction)}/"
-                             f"{NUM_CONSTRUCTION_MAX[construction]}")
-                            for construction in [ConstructionKind.ROAD, ConstructionKind.COLONY,
-                                                 ConstructionKind.TOWN]] + [(ResourceManager.SMALL_DEV_CARD,
-                                                                             str(self.main_player.num_knights()))]:
+        for image, num, denom in [(ResourceManager.CONSTRUCTIONS[construction][self.main_player.color],
+                                   self.main_player.num_constructions_belonging_to_player(construction),
+                                   NUM_CONSTRUCTION_MAX[construction])
+                                  for construction in [ConstructionKind.ROAD, ConstructionKind.COLONY,
+                                                       ConstructionKind.TOWN]] + [(ResourceManager.SMALL_DEV_CARD,
+                                                                                   self.main_player.num_knights(),
+                                                                                   None)]:
             self.screen.blit(image, (x + 35 - image.get_width() // 2, y_construction - image.get_height() // 2))
-            render_text(self.screen, text, x + 100, y_construction, 40)
+
+            text = str(num)
+            color = (0, 0, 0)
+            if denom is not None:
+                text = f"{num}/{denom}"
+                if num == denom:
+                    color = (100, 0, 0)
+
+            render_text(self.screen, text, x + 100, y_construction, 40, color=color)
 
             y_construction += height_constructions
 

@@ -9,6 +9,8 @@ from player import Player, PlayerManager
 from ia_player import IaPlayer
 from manual_player import ManualPlayer
 
+from actions import ActionBuildColony
+
 
 if __name__ == "__main__":
     # random.seed(1)
@@ -17,15 +19,16 @@ if __name__ == "__main__":
 
     ResourceManager.load()
 
-    game = Game(["Mathieu", "Quentin", "Juliette", "Sarah"])
+    # game = Game(["Mathieu", "Quentin", "Juliette", "Sarah"])
+    game = Game(["Joueur", "Ordi 1", "Ordi 2"])
 
     player_managers: dict[Player, PlayerManager] = {
         player: IaPlayer(player) for player in game.players
     }
-    player_managers[game.players[0]] = ManualPlayer(game.players[0])
+    player_managers[game.players[0]] = ManualPlayer(game.players[0], auto_refuse_ratio_max_exchange=0.5)
 
-    # ia_play_with_space = False
-    ia_play_with_space = True
+    ia_play_with_space = False
+    # ia_play_with_space = True
 
     render_game = RenderGame(game, game.players[0], player_managers[game.players[0]])
 

@@ -35,3 +35,6 @@ class Exchange:
     def undo(self, player: 'Player'):
         player.resource_cards.consume(self.gain)
         player.resource_cards.add(self.lost)
+
+    def ratio(self):
+        return sum(self.gain.values()) / sum(self.lost.values())

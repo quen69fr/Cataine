@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 
 class ManualPlayer(PlayerManager):
-    def __init__(self, player: Player):
+    def __init__(self, player: Player, auto_refuse_ratio_max_exchange: float = 0):
         PlayerManager.__init__(self, player)
         self.selected_cards: list[int] = []
         self.last_hand_cards: ResourceHandCount = ResourceHandCount()
@@ -29,6 +29,7 @@ class ManualPlayer(PlayerManager):
         self.ongoing_exchange: Exchange | None = None
         self.ongoing_bank_exchange: Exchange | None = None
 
+        self.refuse_ratio_max_exchange = auto_refuse_ratio_max_exchange
         self.clic = False
 
     def play(self):
@@ -210,6 +211,9 @@ class ManualPlayer(PlayerManager):
         return True
 
     def accept_exchange(self):
+        if self.player.exchange_asked.ratio() < self.refuse_ratio_max_exchange:
+            self.player.reject_exchange()
+            return True
         if not self.clic or self.render_game is None:
             return False
         i = self.render_game.clic_on_exchange_button()
