@@ -9,8 +9,6 @@ from player import Player, PlayerManager
 from ia_player import IaPlayer
 from manual_player import ManualPlayer
 
-from actions import ActionBuildColony
-
 
 if __name__ == "__main__":
     # random.seed(1)
