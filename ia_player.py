@@ -37,7 +37,7 @@ class IaPlayer(PlayerManager):
         if not self.play_next_step:
             return False
         if self.player.num_cards_to_remove_for_thief > 0:
-            new_hand = self.strategy.remove_cards_thief(sum(self.player.resource_cards.values()) -
+            new_hand = self.strategy.remove_cards_thief(self.player.num_resources() -
                                                         self.player.num_cards_to_remove_for_thief)
             self.player.remove_cards_for_thief(new_hand)
         return True

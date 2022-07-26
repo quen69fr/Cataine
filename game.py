@@ -78,7 +78,6 @@ class Game:
             else:  # self.game_sub_state == GamePlayingState.STEAL_CARD:
                 if player_managers[current_player].steal_card():
                     self.game_sub_state = GamePlayingState.NEXT_TURN
-        self.update_longest_road_and_largest_army()
 
     def _knight_before_playing(self, player_managers: dict[Player, PlayerManager]):
         current_player = self.get_current_player()
@@ -155,7 +154,7 @@ class Game:
                     res = current_player.monopoly_resource
                     assert res is not None
                     for player in self.get_non_current_players():
-                        current_player.resource_cards.add_one(res, player.resource_cards[res])
+                        current_player.add_one_resource(res, player.resource_cards[res])
                         player.resource_cards[res] = 0
                     current_player.monopoly_resource = None
                     current_player.dev_card_in_action = None
@@ -174,32 +173,6 @@ class Game:
         print("\nPlayer turn:", self.get_current_player())
         self.dices = (random.randint(1, 6), random.randint(1, 6))
 
-    def update_longest_road_and_largest_army(self):
-        player_longest_road = None
-        longest_road = LENGTH_MIN_LONGEST_ROAD - 1
-        player_largest_army = None
-        largest_army = SIZE_MIN_LARGEST_ARMY - 1
-        for player in self.players:
-            road_length = player.get_length_longest_road()
-            army_size = player.num_knights()
-            if road_length > longest_road or (road_length == longest_road and player.longest_road):
-                if player_longest_road is not None:
-                    player_longest_road.longest_road = False
-                player_longest_road = player
-                longest_road = road_length
-                player_longest_road.longest_road = True
-            else:
-                player.longest_road = False
-            if army_size > largest_army or (army_size == largest_army and player.largest_army):
-                if player_largest_army is not None:
-                    player_largest_army.largest_army = False
-                player_largest_army = player
-                largest_army = army_size
-                player_largest_army.largest_army = True
-            else:
-                player.largest_army = False
-        print(player_longest_road)
-
     def get_resources(self):
         r = sum(self.dices)
         assert not r == 7
@@ -209,9 +182,9 @@ class Game:
                 for inte in tile.intersections:
                     if inte.content is None:
                         continue
-                    inte.content.player.resource_cards.add_one(tile.resource)
+                    inte.content.player.add_one_resource(tile.resource)
                     if inte.content.kind == ConstructionKind.TOWN:
-                        inte.content.player.resource_cards.add_one(tile.resource)
+                        inte.content.player.add_one_resource(tile.resource)
 
     def get_current_player(self) -> Player:
         if self.game_state == GameState.PLACING_COLONIES:

@@ -37,7 +37,7 @@ def mark_objective(player: Player, cost_no_modify: ResourceHandCount, initial_ga
         hand_after_cost_num_turns[res] = count
 
     # predict cards and add to future hands
-    for res, expectation in player.get_resource_production_expectation_without_exchange(with_thief=True).items():
+    for res, expectation in player.get_resource_production_expectation_with_thief().items():
         hand_after_cost_num_turns[res] += expectation * cost_num_turns
 
     # remove all resources that will be used by this objective
@@ -63,18 +63,18 @@ def mark_resource(player: Player, resource: Resource):
     elif Resource.P_3_FOR_1 in ports:
         c = 60
     return (1 if Resource.P_3_FOR_1 in ports else 0.95) / \
-           ((1 + c * player.get_resource_production_expectation_without_exchange()[resource]) ** 0.6)
+           ((1 + c * player.production_expectation[resource]) ** 0.6)
 
 
 def mark_port(player: Player, resource: Resource, special_expectation: float = None):
     expectation = special_expectation
     if resource == Resource.P_3_FOR_1:
         if expectation is None:
-            expectation = max(player.get_resource_production_expectation_without_exchange().values())
+            expectation = max(player.production_expectation.values())
         return 0.6 * expectation / 3
     else:
         if expectation is None:
-            expectation = player.get_resource_production_expectation_without_exchange()[resource]
+            expectation = player.production_expectation[resource]
         return 0.7 * expectation / 2
 
 
@@ -98,7 +98,7 @@ def mark_intersection(player: Player, intersection: TileIntersection):
             if path.port.resource == Resource.P_3_FOR_1:
                 mark += mark_port(player, path.port.resource)
             else:
-                special_expectation = player.get_resource_production_expectation_without_exchange()[path.port.resource]
+                special_expectation = player.production_expectation[path.port.resource]
                 for tile in intersection.neighbour_tiles:
                     if tile.resource == path.port.resource:
                         special_expectation += get_probability_to_roll(tile.dice_number)
@@ -116,7 +116,7 @@ def mark_tile_thief(player: Player, tile: Tile):
             if inter.content.player == player:
                 coef = -5
             else:
-                if not sum(inter.content.player.resource_cards.values()) == 0:
+                if not inter.content.player.num_resources() == 0:
                     has_someone_to_steal = True
             mark += c * coef * mark_resource(inter.content.player, tile.resource)
     if tile.resource == Resource.DESERT:

@@ -19,7 +19,7 @@ class Exchange:
         return Exchange(self.lost, self.gain)
 
     def possible(self, player: 'Player'):
-        return player.resource_cards.has(self.lost)
+        return player.has_resources(self.lost)
 
     def apply(self, player: 'Player', other_player: 'player | BANK_PLAYER_FOR_EXCHANGE'):
         print(f"Exchange between {player} and "
@@ -29,12 +29,12 @@ class Exchange:
             self.inverse().apply_one(other_player)
 
     def apply_one(self, player: 'Player'):
-        player.resource_cards.consume(self.lost)
-        player.resource_cards.add(self.gain)
+        player.consume_resources(self.lost)
+        player.add_resources(self.gain)
 
     def undo(self, player: 'Player'):
-        player.resource_cards.consume(self.gain)
-        player.resource_cards.add(self.lost)
+        player.consume_resources(self.gain)
+        player.add_resources(self.lost)
 
     def ratio(self):
         return sum(self.gain.values()) / sum(self.lost.values())

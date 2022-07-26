@@ -2,14 +2,18 @@ from __future__ import annotations
 
 import pygame
 from random import shuffle
+from typing import TYPE_CHECKING
 
 from resource import Resource, BOARD_PORT_INDEXES_PATHS, BOARD_PORT_DIRECTION
 from dev_cards import DevCard, NUM_DEV_CARDS
 from resource_manager import ResourceManager
-from constants import LIST_TILES_COORDS, LIST_TILES_INTERSECTIONS_COORDS, THIEF_INITIAL_TILE
+from constants import LIST_TILES_COORDS, LIST_TILES_INTERSECTIONS_COORDS, THIEF_INITIAL_TILE, SIZE_MIN_LARGEST_ARMY
 from tile import Tile
 from tile_intersection import TileIntersection
 from tile_path import TilePath
+
+if TYPE_CHECKING:
+    from player import Player
 
 
 class Board:
@@ -26,6 +30,24 @@ class Board:
         self.dev_cards: list[DevCard] = sum([[card for _ in range(num)] for card, num in NUM_DEV_CARDS.items()],
                                             start=[])
         shuffle(self.dev_cards)
+
+        self.players_longest_road: list[Player] = []
+        self.player_largest_army: Player | None = None
+
+    def update_longest_road(self, player: 'Player'):
+        lr = self.players_longest_road
+        bonus = 1 if player == self.players_longest_road[0] else 0
+        self.players_longest_road = []
+        added = False
+        for p in lr:
+            if p == player:
+                continue
+            if not added and p.length_longest_road < player.length_longest_road + bonus:
+                self.players_longest_road.append(player)
+                added = True
+            self.players_longest_road.append(p)
+        if not added:
+            self.players_longest_road.append(player)
 
     def create_bord(self, list_tiles_resources: list[Resource], list_tiles_dice_numbers: list[int],
                     list_ports_resources: list[Resource]):

@@ -8,9 +8,9 @@ from resource import Resource
 from dev_cards import DevCard
 from construction import Construction, ConstructionKind, NUM_CONSTRUCTION_MAX
 from resource_hand_count import ResourceHandCount
+from player import Player
 
 if TYPE_CHECKING:
-    from player import Player
     from tile_path import TilePath
     from tile_intersection import TileIntersection
 
@@ -20,10 +20,6 @@ class Action:
 
     @abstractmethod
     def apply(self):
-        pass
-
-    @abstractmethod
-    def undo(self):
         pass
 
     @abstractmethod
@@ -41,13 +37,8 @@ class ActionBuildRoad(Action):
     def apply(self):
         if self.path.road_player is not None:
             raise ValueError("building road on a tile path that already has a road")
-        self.path.road_player = self.player
-        self.player.resource_cards.consume(self.cost)
-
-    def undo(self):
-        assert self.path.road_player == self.player
-        self.path.road_player = None
-        self.player.resource_cards.add(self.cost)
+        self.player.add_road(self.path)
+        self.player.consume_resources(self.cost)
 
     def available(self):
         # path is occupied
@@ -83,13 +74,8 @@ class ActionBuildColony(Action):
     def apply(self):
         if self.intersection.content is not None:
             raise ValueError("building colony on a tile intersection that already has a colony")
-        self.intersection.content = Construction(kind=ConstructionKind.COLONY, player=self.player)
-        self.player.resource_cards.consume(self.cost)
-
-    def undo(self):
-        assert self.intersection.content == Construction(kind=ConstructionKind.COLONY, player=self.player)
-        self.intersection.content = None
-        self.player.resource_cards.add(self.cost)
+        self.player.add_colony(self.intersection)
+        self.player.consume_resources(self.cost)
 
     def available(self):
         if not self.intersection.can_build():
@@ -114,13 +100,8 @@ class ActionBuildTown(Action):
     def apply(self):
         if not self.intersection.content == Construction(kind=ConstructionKind.COLONY, player=self.player):
             raise ValueError("the town must be built on one of our colony")
-        self.intersection.content = Construction(kind=ConstructionKind.TOWN, player=self.player)
-        self.player.resource_cards.consume(self.cost)
-
-    def undo(self):
-        assert self.intersection.content == Construction(kind=ConstructionKind.TOWN, player=self.player)
-        self.intersection.content = Construction(kind=ConstructionKind.COLONY, player=self.player)
-        self.player.resource_cards.add(self.cost)
+        self.player.add_town(self.intersection)
+        self.player.consume_resources(self.cost)
 
     def available(self):
         if self.player.num_towns_belonging_to_player() >= NUM_CONSTRUCTION_MAX[ConstructionKind.TOWN]:
@@ -137,13 +118,7 @@ class ActionBuyDevCard(Action):
         assert self.player.board.dev_cards
         self.player.dev_cards.append(self.player.board.dev_cards.pop())
         self.player.num_dev_cards_just_bought += 1
-        self.player.resource_cards.consume(self.cost)
-
-    def undo(self):  # We shouldn't use this function because we shouldn't now the card we are gonna to get...
-        assert self.player.dev_cards
-        self.player.board.dev_cards.append(self.player.dev_cards.pop())
-        self.player.num_dev_cards_just_bought -= 1
-        self.player.resource_cards.add(self.cost)
+        self.player.consume_resources(self.cost)
 
     def available(self):
         return len(self.player.board.dev_cards) > 0
@@ -156,14 +131,7 @@ class ActionRevealDevCard(Action):
     cost = ResourceHandCount({Resource.ROCK: 1, Resource.HAY: 1, Resource.WOOL: 1})
 
     def apply(self):
-        self.player.dev_cards.remove(self.dev_card)
-        self.player.dev_cards_revealed.append(self.dev_card)
-        self.player.dev_card_in_action = self.dev_card
-
-    def undo(self):
-        self.player.dev_cards.insert(0, self.dev_card)
-        self.player.dev_cards_revealed.pop()
-        self.player.dev_card_in_action = None
+        self.player.reveal_dev_card(self.dev_card)
 
     def available(self, before_play: bool = False):
         if before_play and not self.dev_card == DevCard.KNIGHT:

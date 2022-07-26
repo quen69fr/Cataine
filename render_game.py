@@ -453,7 +453,7 @@ class RenderGame:
         # Resource cards
         x_cards, y_cards = x + 3, y + 5 + ResourceManager.PLAYER_LOGO.get_height()
         self.screen.blit(ResourceManager.BACK_CARD, (x_cards, y_cards))
-        render_text(self.screen, str(sum(player.resource_cards.values())),
+        render_text(self.screen, str(player.num_resources()),
                     x_cards + ResourceManager.BACK_CARD.get_width() // 2,
                     y_cards + ResourceManager.BACK_CARD.get_height() // 2, 60)
 

@@ -5,13 +5,13 @@ from abc import abstractmethod
 
 import pygame
 
-from constants import NUM_CARD_MAX_THIEF
+from constants import NUM_CARD_MAX_THIEF, SIZE_MIN_LARGEST_ARMY, LENGTH_MIN_LONGEST_ROAD
 from resource import Resource
 from resource_hand_count import ResourceHandCount
 from dev_cards import DevCard
 from color import Color
 from construction import Construction, ConstructionKind
-from probability import get_expectation_of_intersection, get_probability_to_roll
+from probability import get_probability_to_roll
 from rendering_functions import render_text
 from tile import Tile
 from tile_intersection import TileIntersection
@@ -35,6 +35,7 @@ class Player:
         self.num_dev_cards_just_bought: int = 0
         self.dev_cards_revealed: list[DevCard] = []
         self.board = board
+        self.board.players_longest_road.append(self)
 
         self.num_cards_to_remove_for_thief = 0
         self.dev_card_in_action: None | DevCard = None
@@ -42,22 +43,86 @@ class Player:
         self.exchange_asked: Exchange | None = None
         self.exchange_accepted = False
         self.monopoly_resource: None | Resource = None
-        self.longest_road: bool = False
-        self.largest_army: bool = False
+        self.length_longest_road: int = 0
+
+        self.production_expectation: dict[Resource, float] = {
+            Resource.CLAY: 0,
+            Resource.WOOD: 0,
+            Resource.WOOL: 0,
+            Resource.HAY: 0,
+            Resource.ROCK: 0
+        }
+
+    def add_road(self, path: TilePath):
+        path.road_player = self
+        self.update_longest_road()
+
+    def add_colony(self, intersection: TileIntersection):
+        intersection.content = Construction(ConstructionKind.COLONY, self)
+        # Check if we cut the longest road
+        player = None
+        for path in intersection.neighbour_paths:
+            if path.road_player is None:
+                continue
+            if player is None:
+                player = path.road_player
+                continue
+            if player == path.road_player:
+                player.update_longest_road()
+        self.update_production_expectations(intersection)
+
+    def add_town(self, intersection: TileIntersection):
+        intersection.content = Construction(ConstructionKind.TOWN, self)
+        self.update_production_expectations(intersection)
+
+    def update_production_expectations(self, new_intersection: TileIntersection):
+        for tile in new_intersection.neighbour_tiles:
+            if tile.resource == Resource.DESERT:
+                continue
+            self.production_expectation[tile.resource] += get_probability_to_roll(tile.dice_number)
+
+    def add_resources(self, resources: ResourceHandCount):
+        self.resource_cards.add(resources)
+
+    def consume_resources(self, resources: ResourceHandCount):
+        self.resource_cards.consume(resources)
+
+    def add_one_resource(self, res: Resource, num: int = 1):
+        self.resource_cards.add_one(res, num=num)
+
+    def try_consume_one(self, res: Resource):
+        return self.resource_cards.try_consume_one(res)
+
+    def has_resources(self, cost: ResourceHandCount):
+        return self.resource_cards.has(cost)
+
+    def num_resources(self):
+        return self.resource_cards.num_resources()
+
+    def reveal_dev_card(self, dev_card: DevCard):
+        self.dev_cards.remove(dev_card)
+        self.dev_cards_revealed.append(dev_card)
+        self.dev_card_in_action = dev_card
+        # Check for the largest army
+        if dev_card == DevCard.KNIGHT and not self.board.player_largest_army == self:
+            size_army = self.num_knights()
+            if size_army >= SIZE_MIN_LARGEST_ARMY:
+                if self.board.player_largest_army is None or self.board.player_largest_army.num_knights() < size_army:
+                    self.board.player_largest_army = self
 
     def place_initial_colony(self, intersection: TileIntersection):
-        intersection.content = Construction(kind=ConstructionKind.COLONY, player=self)
-
+        self.add_colony(intersection)
+        # Add cards
         if self.num_colonies_belonging_to_player() == 2:
             for tile in intersection.neighbour_tiles:
                 if not tile.resource == Resource.DESERT:
-                    self.resource_cards.add_one(tile.resource)
+                    self.add_one_resource(tile.resource)
 
     def place_initial_road(self, path: TilePath):
-        path.road_player = self
+        self.add_road(path)
 
     def move_thief_match_num_cards(self):
-        num_cards = sum(self.resource_cards.values())
+        num_cards = self.num_resources()
         if num_cards > NUM_CARD_MAX_THIEF:
             self.num_cards_to_remove_for_thief = num_cards // 2
 
@@ -70,20 +135,20 @@ class Player:
 
     def steal_card(self, player: Player | None):
         res = player.resource_cards.random_resource()
-        self.resource_cards.add_one(res)
-        player.resource_cards.try_consume_one(res)
+        self.add_one_resource(res)
+        player.try_consume_one(res)
 
     def can_steal(self):
         for inter in self.board.thief_tile.intersections:
             if inter.content is None:
                 continue
             player = inter.content.player
-            if not player == self and not sum(player.resource_cards.values()) == 0:
+            if not player == self and not player.num_resources() == 0:
                 return True
         return False
 
     def can_steal_player(self, player: Player):
-        if player == self or sum(player.resource_cards.values()) == 0:
+        if player == self or player.num_resources() == 0:
             return False
         for inter in self.board.thief_tile.intersections:
             if inter.content is None:
@@ -102,7 +167,7 @@ class Player:
         self.exchange_asked = None
 
     def ask_for_exchange(self, exchange: Exchange):
-        if self.has_resources_to_exchange(exchange):
+        if self.has_resources(exchange.lost):
             self.exchange_asked = exchange
             self.exchange_accepted = False
             return True
@@ -111,12 +176,6 @@ class Player:
     def exchange_asked_done(self):
         self.exchange_asked = None
         self.exchange_accepted = False
-
-    def free_card(self, resource: Resource):
-        self.resource_cards.add_one(resource)
-
-    def free_road(self, path: TilePath):
-        path.road_player = self
 
     def monopoly(self, resource: Resource):
         self.monopoly_resource = resource
@@ -144,33 +203,20 @@ class Player:
             if path.road_player == self:
                 yield path
 
-    def get_resource_production_expectation_without_exchange(self, with_thief: bool = False):
-        """ resource -> number of that resource per turn """
-        prod: dict[Resource, float] = {
-            Resource.CLAY: 0,
-            Resource.WOOD: 0,
-            Resource.WOOL: 0,
-            Resource.HAY: 0,
-            Resource.ROCK: 0
-        }
-
-        for inte in self.find_all_intersection_belonging_to_player():
-            assert inte.content is not None
-            if inte.content.kind == ConstructionKind.COLONY:
-                c = 1
-            else:
-                c = 2
-            for tile in inte.neighbour_tiles:
-                if tile.resource == Resource.DESERT or (with_thief and self.board.thief_tile == tile):
-                    continue
-                prod[tile.resource] += get_probability_to_roll(tile.dice_number) * c
-
+    def get_resource_production_expectation_with_thief(self) -> dict[Resource, float]:
+        if self.board.thief_tile.resource == Resource.DESERT:
+            return self.production_expectation
+        prod = self.production_expectation.copy()
+        expect = get_probability_to_roll(self.board.thief_tile.dice_number)
+        for inter in self.board.thief_tile.intersections:
+            if inter.content is not None and inter.content.player == self:
+                prod[self.board.thief_tile.resource] += \
+                    expect * (1 if inter.content.kind == ConstructionKind.COLONY else 2)
         return prod
 
-    def get_resource_production_in_number_of_turns_with_systematic_exchange(self, with_thief: bool = False):
-        """ resource -> number of turns """
+    def get_resource_production_in_number_of_turns_with_systematic_exchange(self, with_thief: bool = False) -> dict[Resource, float]:
         prod_turns = {}
-        prod = self.get_resource_production_expectation_without_exchange(with_thief)
+        prod = self.get_resource_production_expectation_with_thief() if with_thief else self.production_expectation
         min_number_of_turns_with_exchange = 4 / max(prod.values())
         for res, proba in prod.items():
             if proba == 0:
@@ -189,9 +235,9 @@ class Player:
 
     def num_victory_points(self):
         num = 0
-        if self.longest_road:
+        if self.length_longest_road >= LENGTH_MIN_LONGEST_ROAD and self.board.players_longest_road[0] == self:
             num += 2
-        if self.largest_army:
+        if self.board.player_largest_army == self:
             num += 2
         for inter in self.board.intersections:
             if inter.content is not None and inter.content.player == self:
@@ -251,9 +297,6 @@ class Player:
                     return inter
         assert False
 
-    def has_resources_to_exchange(self, exchange: Exchange):
-        return self.resource_cards.has(exchange.lost)
-
     def can_exchange_with_the_bank(self, exchange: Exchange) -> bool:
         # We look for the ports
         ports = list(self.get_ports())
@@ -307,10 +350,16 @@ class Player:
         if len(paths_set) == 0:
             return 0
         intersection_set = set()
-        for path in paths_set:
-            for inter in path.intersections:
+        for path_i in paths_set:
+            for inter in path_i.intersections:
                 intersection_set.add(inter)
         return max(get_all_possible_length_from_intersection(inter, paths_set) for inter in intersection_set)
+
+    def update_longest_road(self):
+        length = self.get_length_longest_road()
+        if not length == self.length_longest_road:
+            self.length_longest_road = length
+            self.board.update_longest_road(self)
 
     def __repr__(self):
         return f"<Player {self.color.name}>"
@@ -381,8 +430,3 @@ class PlayerManager:
     @abstractmethod
     def monopoly(self) -> bool:
         pass
-
-
-def neighbour_tiles_expectation(intersection: TileIntersection):
-    return get_expectation_of_intersection(
-        t.dice_number for t in intersection.neighbour_tiles if t.resource != Resource.DESERT)

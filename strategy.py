@@ -157,7 +157,7 @@ class StrategyExplorer(Strategy):
         while obj is not None:
             print("Objective:", obj, "  -> mark:", obj.mark)
             for action in obj.actions:
-                if self.player.resource_cards.has(action.cost):
+                if self.player.has_resources(action.cost):
                     assert action.available()
                     action.apply()
                 else:
@@ -171,10 +171,10 @@ class StrategyExplorer(Strategy):
         best_resource_cards = None
         best_mark = 0
         for resource_cards in self.player.resource_cards.copy().subsets_of_size_k(num_cards_kept):
-            self.player.resource_cards.add(resource_cards)
+            self.player.add_resources(resource_cards)
             obj = self._get_objective()
             mark = 0 if obj is None else obj.mark
-            self.player.resource_cards.consume(resource_cards)
+            self.player.consume_resources(resource_cards)
             if best_resource_cards is None or mark > best_mark:
                 best_resource_cards = resource_cards
                 best_mark = mark
@@ -201,7 +201,7 @@ class StrategyExplorer(Strategy):
             if inter.content is None:
                 continue
             player = inter.content.player
-            if player == self.player or sum(player.resource_cards.values()) == 0:
+            if player == self.player or player.num_resources() == 0:
                 continue
             num_victory_points = player.num_victory_points()
             if best_player is None or num_victory_points > best_num_victory_points:

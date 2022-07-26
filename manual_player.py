@@ -251,7 +251,7 @@ class ManualPlayer(PlayerManager):
         if not action.available():
             return False
         # action.apply()
-        self.player.free_road(path)
+        self.player.add_road(path)
         return True
 
     def free_card(self):
@@ -261,7 +261,7 @@ class ManualPlayer(PlayerManager):
         res = self.render_game.clic_on_bank_resource(x, y)
         if res is None:
             return False
-        self.player.free_card(res)
+        self.player.add_one_resource(res)
         return True
 
     def monopoly(self):
@@ -319,7 +319,7 @@ class ManualPlayer(PlayerManager):
                 and self.ongoing_bank_exchange is None \
                 and self.ongoing_exchange is None:
             x, y = position_hand_resource_cards()
-            index_card = self.render_game.clic_cards(sum(self.player.resource_cards.values()), x, y,
+            index_card = self.render_game.clic_cards(self.player.num_resources(), x, y,
                                                      ANGLE_MAX_CARDS_RESOURCE)
             if index_card is not None:
                 if index_card in self.selected_cards:
