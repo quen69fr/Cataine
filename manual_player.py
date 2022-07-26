@@ -4,12 +4,13 @@ import pygame
 from typing import TYPE_CHECKING
 
 from resource import Resource
+from dev_cards import DevCard
 from rendering_constants import *
 from rendering_functions import alpha_image, render_road
 from resource_hand_count import ResourceHandCount, ORDER_RESOURCES
 from resource_manager import ResourceManager
 from construction import Construction, ConstructionKind
-from actions import Action, ActionBuildRoad, ActionBuildColony, ActionBuildTown, ActionBuyDevCard
+from actions import Action, ActionBuildRoad, ActionBuildColony, ActionBuildTown, ActionBuyDevCard, ActionRevealDevCard
 from player import Player, PlayerManager
 from exchange import Exchange, BANK_PLAYER_FOR_EXCHANGE
 from game_states import GameState, GamePlayingState, GamePlacingColoniesState
@@ -41,22 +42,44 @@ class ManualPlayer(PlayerManager):
             if action is not None and action.available():
                 action.apply()
                 self.ongoing_construction = None
-                return False
-        elif self.ongoing_bank_exchange is not None:
+            elif self.render_game.clic_on_main_player_buttons() == 0:
+                self.ongoing_construction = None
+            return False
+        if self.ongoing_bank_exchange is not None:
             x, y = position_bank_resource_exchange()
             res = self.render_game.clic_on_bank_resource(x, y)
             if res is not None:
                 self.ongoing_bank_exchange.gain.add_one(res)
                 self.ongoing_bank_exchange.apply(self.player, BANK_PLAYER_FOR_EXCHANGE)
                 self.ongoing_bank_exchange = None
-                return False
-        elif self.ongoing_exchange is not None:
+            elif self.render_game.clic_on_main_player_buttons() == 1:
+                self.ongoing_bank_exchange = None
+            return False
+        if self.ongoing_exchange is not None:
             if self.play_ongoing_exchanges():
                 self.player.propose_exchanges([self.ongoing_exchange])
                 self.ongoing_exchange = None
-                return False
+            elif self.render_game.clic_on_main_player_buttons() == 2:
+                self.ongoing_exchange = None
+            return False
 
-        self.play_player_buttons()
+        x, y = position_hand_dev_cards()
+        index_card = self.render_game.clic_cards(len(self.player.dev_cards), x, y, ANGLE_MAX_CARDS_DEV_AND_EXCHANGE)
+        if index_card is not None:
+            action = ActionRevealDevCard(self.player.dev_cards[index_card], self.player)
+            if action.available():
+                action.apply()
+            return False
+
+        num_button = self.render_game.clic_on_main_player_buttons()
+        if num_button is not None:
+            if num_button == 0:
+                self.construction_button()
+            elif num_button == 1:
+                self.bank_button()
+            else:
+                self.exchange_button()
+            return False
 
         return self.render_game.clic_on_action_button()
 
@@ -77,17 +100,6 @@ class ManualPlayer(PlayerManager):
             return ActionBuildRoad(path, self.player)
         return None
 
-    def play_player_buttons(self):
-        i = self.render_game.clic_on_main_player_buttons()
-        if i is not None:
-            if i == 0:
-                self.construction_button()
-            elif i == 1:
-                self.bank_button()
-            else:
-                self.exchange_button()
-        return self.render_game.clic_on_action_button()
-
     def play_ongoing_exchanges(self):
         assert self.ongoing_exchange is not None
         x, y = position_resources_exchange_box()
@@ -105,51 +117,42 @@ class ManualPlayer(PlayerManager):
         return True
 
     def construction_button(self):
-        if self.ongoing_construction is None:
-            cost = self.get_selected_resource_cards()
-            if cost == ActionBuildRoad.cost:
-                self.ongoing_construction = ConstructionKind.ROAD
-            elif cost == ActionBuildColony.cost:
-                self.ongoing_construction = ConstructionKind.COLONY
-            elif cost == ActionBuildTown.cost:
-                self.ongoing_construction = ConstructionKind.TOWN
-            elif cost == ActionBuyDevCard.cost:
-                pass  # TODO
-        else:
-            self.ongoing_construction = None
+        cost = self.get_selected_resource_cards()
+        if cost == ActionBuildRoad.cost:
+            self.ongoing_construction = ConstructionKind.ROAD
+        elif cost == ActionBuildColony.cost:
+            self.ongoing_construction = ConstructionKind.COLONY
+        elif cost == ActionBuildTown.cost:
+            self.ongoing_construction = ConstructionKind.TOWN
+        elif cost == ActionBuyDevCard.cost:
+            ActionBuyDevCard(self.player).apply()
 
     def bank_button(self):
-        if self.ongoing_bank_exchange is None:
-            if len(self.selected_cards) < 2 or len(self.selected_cards) > 4:
+        if len(self.selected_cards) < 2 or len(self.selected_cards) > 4:
+            return
+
+        list_cards = list(self.player.resource_cards.list_resources())
+        res = list_cards[self.selected_cards[0]]
+        for i in self.selected_cards:
+            if not res == list_cards[i]:
                 return
 
-            list_cards = list(self.player.resource_cards.list_resources())
-            res = list_cards[self.selected_cards[0]]
-            for i in self.selected_cards:
-                if not res == list_cards[i]:
-                    return
-
-            ports = self.player.get_ports()
-            if len(self.selected_cards) == 2 and res not in ports:
+        ports = self.player.get_ports()
+        if len(self.selected_cards) == 2 and res not in ports:
+            return
+        if Resource.P_3_FOR_1 in ports:
+            if len(self.selected_cards) == 4:
                 return
-            if Resource.P_3_FOR_1 in ports:
-                if len(self.selected_cards) == 4:
-                    return
-            else:
-                if len(self.selected_cards) == 3:
-                    return
-
-            self.ongoing_bank_exchange = Exchange(ResourceHandCount(), self.get_selected_resource_cards())
         else:
-            self.ongoing_bank_exchange = None
+            if len(self.selected_cards) == 3:
+                return
+
+        self.ongoing_bank_exchange = Exchange(ResourceHandCount(), self.get_selected_resource_cards())
 
     def exchange_button(self):
-        if self.ongoing_exchange is None:
-            if len(self.selected_cards) == 0:
-                return
-            self.ongoing_exchange = Exchange(ResourceHandCount(), self.get_selected_resource_cards())
-        else:
-            self.ongoing_exchange = None
+        if len(self.selected_cards) == 0:
+            return
+        self.ongoing_exchange = Exchange(ResourceHandCount(), self.get_selected_resource_cards())
 
     def place_initial_colony(self):
         if not self.clic or self.render_game is None:
@@ -228,7 +231,48 @@ class ManualPlayer(PlayerManager):
     def throw_dice(self):
         if not self.clic or self.render_game is None:
             return False
+        x, y = position_hand_dev_cards()
+        index_card = self.render_game.clic_cards(len(self.player.dev_cards), x, y, ANGLE_MAX_CARDS_DEV_AND_EXCHANGE)
+        if index_card is not None:
+            action = ActionRevealDevCard(self.player.dev_cards[index_card], self.player)
+            if action.available(before_play=True):
+                action.apply()
+            return False
         return self.render_game.clic_on_action_button()
+
+    def place_free_road(self):
+        if not self.clic or self.render_game is None:
+            return False
+        x, y = pygame.mouse.get_pos()
+        path = self.player.board.mouse_on_path(X_BOARD, Y_BOARD, x, y)
+        if path is None:
+            return False
+        action = ActionBuildRoad(path, self.player)
+        if not action.available():
+            return False
+        # action.apply()
+        self.player.free_road(path)
+        return True
+
+    def free_card(self):
+        if not self.clic or self.render_game is None:
+            return False
+        x, y = position_bank_resource_exchange()
+        res = self.render_game.clic_on_bank_resource(x, y)
+        if res is None:
+            return False
+        self.player.free_card(res)
+        return True
+
+    def monopoly(self):
+        if not self.clic or self.render_game is None:
+            return False
+        x, y = position_bank_monopoly()
+        res = self.render_game.clic_on_bank_resource(x, y)
+        if res is None:
+            return False
+        self.player.monopoly(res)
+        return True
 
     def get_resources(self):
         if not self.clic or self.render_game is None:
@@ -269,18 +313,19 @@ class ManualPlayer(PlayerManager):
 
     def update_rendering(self):
         self.update_selected_cards()
-        if self.clic and self.render_game is not None:
-            if self.ongoing_construction is None \
-                    and self.ongoing_bank_exchange is None \
-                    and self.ongoing_exchange is None:
-                x, y = position_hand_resource_cards()
-                index_card = self.render_game.clic_cards(sum(self.player.resource_cards.values()), x, y,
-                                                         ANGLE_MAX_CARDS_RESOURCE)
-                if index_card is not None:
-                    if index_card in self.selected_cards:
-                        self.selected_cards.remove(index_card)
-                    else:
-                        self.add_selected_card(index_card)
+        if not self.clic or self.render_game is None:
+            return
+        if self.ongoing_construction is None \
+                and self.ongoing_bank_exchange is None \
+                and self.ongoing_exchange is None:
+            x, y = position_hand_resource_cards()
+            index_card = self.render_game.clic_cards(sum(self.player.resource_cards.values()), x, y,
+                                                     ANGLE_MAX_CARDS_RESOURCE)
+            if index_card is not None:
+                if index_card in self.selected_cards:
+                    self.selected_cards.remove(index_card)
+                else:
+                    self.add_selected_card(index_card)
 
     def add_selected_card(self, index_card: int):
         i = 0
@@ -296,7 +341,13 @@ class ManualPlayer(PlayerManager):
             else:
                 self.render_build_road(screen)
         elif game_state == GameState.PLAYING:
-            if game_sub_state == GamePlayingState.NEXT_TURN:
+            if game_sub_state == GamePlayingState.THROW_DICES:
+                if self.player.dev_card_in_action is not None:
+                    if self.player.dev_card_in_action == DevCard.KNIGHT:
+                        self.render_move_thief(screen)
+                    elif self.player.dev_card_in_action == DevCard.KNIGHT_STEAL_CARD:
+                        self.render_steal_card(screen)
+            elif game_sub_state == GamePlayingState.NEXT_TURN:
                 if self.ongoing_construction is not None:
                     if self.ongoing_construction == ConstructionKind.ROAD:
                         self.render_build_road(screen)
@@ -304,6 +355,14 @@ class ManualPlayer(PlayerManager):
                         self.render_build_colony(screen)
                     elif self.ongoing_construction == ConstructionKind.TOWN:
                         self.render_build_town(screen)
+                elif self.player.dev_card_in_action is not None:
+                    if self.player.dev_card_in_action == DevCard.KNIGHT:
+                        self.render_move_thief(screen)
+                    elif self.player.dev_card_in_action == DevCard.KNIGHT_STEAL_CARD:
+                        self.render_steal_card(screen)
+                    elif self.player.dev_card_in_action == DevCard.FREE_ROADS \
+                            or self.player.dev_card_in_action == DevCard.FREE_ROADS_ONE_ROAD_LASTING:
+                        self.render_build_road(screen)
             elif game_sub_state == GamePlayingState.MOVE_THIEF:
                 self.render_move_thief(screen)
             elif game_sub_state == GamePlayingState.STEAL_CARD:

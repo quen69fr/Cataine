@@ -163,8 +163,8 @@ class RenderGame:
         self.screen.blit(ResourceManager.BACKGROUND, (0, 0))
         self.game.board.render(X_BOARD, Y_BOARD, self.screen)
         self.render_title()
-        self.render_actions_box()
         self.render_players()
+        self.render_actions_box()
         if isinstance(self.main_player_manager, ManualPlayer) and self.game.get_current_player() == self.main_player:
             self.main_player_manager.render_my_turn(self.screen, self.game.game_state, self.game.game_sub_state)
 
@@ -199,10 +199,22 @@ class RenderGame:
             if self.game.game_sub_state == GamePlayingState.THROW_DICES:
                 dices = (0, 0)
                 if my_turn:
-                    button = True
-                    text = "Lancer les dés"
+                    if self.main_player.dev_card_in_action is None:
+                        button = True
+                        text = "Lancer les dés"
+                    else:
+                        if self.main_player.dev_card_in_action == DevCard.KNIGHT:
+                            text = "Vous devez déplacer le voleur."
+                        else:  # self.main_player.dev_card_in_action == DevCard.KNIGHT_STEAL_CARD
+                            text = "Vous devez voler un carte."
                 else:
-                    text = f"{current_player.nickname} lance les dés..."
+                    if current_player.dev_card_in_action is None:
+                        text = f"{current_player.nickname} lance les dés..."
+                    else:
+                        if current_player.dev_card_in_action == DevCard.KNIGHT:
+                            text = "Carte CHEVALIER !"
+                        else:  # current_player.dev_card_in_action == DevCard.KNIGHT_STEAL_CARD
+                            text = "Le CHEVALIER vole une carte !"
             elif self.game.game_sub_state == GamePlayingState.GET_RESOURCES:
                 if my_turn:
                     button = True
@@ -211,10 +223,41 @@ class RenderGame:
                     text = f"{current_player.nickname} récupère les ressources..."
             elif self.game.game_sub_state == GamePlayingState.NEXT_TURN:
                 if my_turn:
-                    button = True
-                    text = "Fin du tour"
+                    if self.main_player.dev_card_in_action is None:
+                        button = True
+                        text = "Fin du tour"
+                    else:
+                        if self.main_player.dev_card_in_action == DevCard.KNIGHT:
+                            text = "Vous devez déplacer le voleur."
+                        elif self.main_player.dev_card_in_action == DevCard.KNIGHT_STEAL_CARD:
+                            text = "Vous devez voler une carte."
+                        elif self.main_player.dev_card_in_action == DevCard.FREE_CARDS:
+                            text = "Vous devez choisir 2 cartes."
+                        elif self.main_player.dev_card_in_action == DevCard.FREE_CARDS_ONE_CARD_LASTING:
+                            text = "Vous devez choisir 1 carte."
+                        elif self.main_player.dev_card_in_action == DevCard.MONOPOLY:
+                            text = "Monopole de ..."
+                        elif self.main_player.dev_card_in_action == DevCard.FREE_ROADS:
+                            text = "Vous devez construire 2 routes."
+                        elif self.main_player.dev_card_in_action == DevCard.FREE_ROADS_ONE_ROAD_LASTING:
+                            text = "Vous devez construire 1 route."
+                        else:
+                            text = ""
                 else:
                     text = f"{current_player.nickname} est en train de jouer..."
+                    if current_player.dev_card_in_action is not None:
+                        if current_player.dev_card_in_action == DevCard.KNIGHT:
+                            text = "Carte CHEVALIER !"
+                        elif current_player.dev_card_in_action == DevCard.KNIGHT_STEAL_CARD:
+                            text = "Le CHEVALIER vole une carte !"
+                        elif current_player.dev_card_in_action == DevCard.FREE_CARDS \
+                                or current_player.dev_card_in_action == DevCard.FREE_CARDS_ONE_CARD_LASTING:
+                            text = f"{current_player.nickname} à 2 cartes resources gratuites."
+                        elif current_player.dev_card_in_action == DevCard.MONOPOLY:
+                            text = "Carte MONOPOLE !"
+                        elif current_player.dev_card_in_action == DevCard.FREE_ROADS \
+                                or current_player.dev_card_in_action == DevCard.FREE_ROADS_ONE_ROAD_LASTING:
+                            text = f"{current_player.nickname} à 2 cartes routes."
             elif self.game.game_sub_state == GamePlayingState.REMOVE_CARDS_THIEF:
                 if self.main_player.num_cards_to_remove_for_thief > 0:
                     if (isinstance(self.main_player_manager, ManualPlayer)
@@ -248,6 +291,12 @@ class RenderGame:
             color = (0, 0, 0) if current_player.color == Color.WHITE else current_player.color.value
             render_text(self.screen, text, x_center, y + height // 2, 35, color)
 
+        if isinstance(self.main_player_manager, ManualPlayer) \
+                and self.main_player == current_player \
+                and self.main_player.dev_card_in_action == DevCard.MONOPOLY:
+            xm, ym = position_bank_monopoly()
+            self.render_bank(xm, ym, True)
+
     def render_exchange_box(self, exchange: Exchange, proposal: bool, ongoing_proposal: bool = False):
         x_box, y_box = position_exchange_box()
         render_rectangle(self.screen, x_box, y_box, WIDTH_EXCHANGE_BOX, HEIGHT_EXCHANGE_BOX, left_arrow=True)
@@ -279,17 +328,24 @@ class RenderGame:
             selected_list = [False, False, False]
         if self.main_player.exchange_asked is not None:
             selected_list[2] = True
+        if self.main_player.dev_card_in_action == DevCard.FREE_CARDS or \
+                self.main_player.dev_card_in_action == DevCard.FREE_CARDS_ONE_CARD_LASTING:
+            selected_list[1] = True
+        if self.main_player.dev_card_in_action == DevCard.FREE_ROADS or \
+                self.main_player.dev_card_in_action == DevCard.FREE_ROADS_ONE_ROAD_LASTING:
+            selected_list[0] = True
+
         for (x, y, width, height), text, selected in zip(rect_buttons_main_player(),
                                                          ["Construire", "Banque", "Echanger"],
                                                          selected_list):
             render_button(self.screen, x, y, width, height, text, 30, selected)
 
-        if isinstance(self.main_player_manager, ManualPlayer):
-            if self.main_player_manager.ongoing_bank_exchange is not None:
-                x, y = position_bank_resource_exchange()
-                self.render_bank(x, y, True)
-            elif self.main_player_manager.ongoing_exchange is not None:
-                self.render_exchange_box(self.main_player_manager.ongoing_exchange, True, True)
+        if selected_list[1]:
+            x, y = position_bank_resource_exchange()
+            self.render_bank(x, y, True)
+        if isinstance(self.main_player_manager, ManualPlayer) and \
+                self.main_player_manager.ongoing_exchange is not None:
+            self.render_exchange_box(self.main_player_manager.ongoing_exchange, True, True)
         if self.main_player.exchange_asked is not None:
             self.render_exchange_box(self.main_player.exchange_asked, False)
         elif self.main_player == self.game.get_current_player():

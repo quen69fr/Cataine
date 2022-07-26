@@ -75,3 +75,12 @@ class IaPlayer(PlayerManager):
         if not self.play_next_step:
             return False
         return True
+
+    def place_free_road(self):
+        pass  # The IA doesn't buy dev card (for now !)
+
+    def free_card(self):
+        pass  # The IA doesn't buy dev card (for now !)
+
+    def monopoly(self):
+        pass  # The IA doesn't buy dev card (for now !)

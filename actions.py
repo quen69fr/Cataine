@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from resource import Resource
 from dev_cards import DevCard
-from typing import TYPE_CHECKING
 from construction import Construction, ConstructionKind, NUM_CONSTRUCTION_MAX
 from resource_hand_count import ResourceHandCount
 
@@ -135,11 +135,15 @@ class ActionBuyDevCard(Action):
 
     def apply(self):
         assert self.player.board.dev_cards
-        self.player.dev_cards.insert(0, self.player.board.dev_cards.pop())
+        self.player.dev_cards.append(self.player.board.dev_cards.pop())
+        self.player.num_dev_cards_just_bought += 1
+        self.player.resource_cards.consume(self.cost)
 
-    def undo(self):
+    def undo(self):  # We shouldn't use this function because we shouldn't now the card we are gonna to get...
         assert self.player.dev_cards
-        self.player.board.dev_cards.insert(0, self.player.dev_cards.pop())
+        self.player.board.dev_cards.append(self.player.dev_cards.pop())
+        self.player.num_dev_cards_just_bought -= 1
+        self.player.resource_cards.add(self.cost)
 
     def available(self):
         return len(self.player.board.dev_cards) > 0
@@ -152,10 +156,18 @@ class ActionRevealDevCard(Action):
     cost = ResourceHandCount({Resource.ROCK: 1, Resource.HAY: 1, Resource.WOOL: 1})
 
     def apply(self):
-        pass  # TODO
+        self.player.dev_cards.remove(self.dev_card)
+        self.player.dev_cards_revealed.append(self.dev_card)
+        self.player.dev_card_in_action = self.dev_card
 
     def undo(self):
-        pass  # TODO
+        self.player.dev_cards.insert(0, self.dev_card)
+        self.player.dev_cards_revealed.pop()
+        self.player.dev_card_in_action = None
 
-    def available(self):
-        return True  # TODO : We can't reveal a dev card that we've just bought
+    def available(self, before_play: bool = False):
+        if before_play and not self.dev_card == DevCard.KNIGHT:
+            return False
+        if self.player.num_dev_cards_just_bought == 0:
+            return self.dev_card in self.player.dev_cards
+        return self.dev_card in self.player.dev_cards[:-self.player.num_dev_cards_just_bought]

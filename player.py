@@ -32,13 +32,16 @@ class Player:
         self.color = color
         self.resource_cards = ResourceHandCount()
         self.dev_cards: list[DevCard] = []
+        self.num_dev_cards_just_bought: int = 0
         self.dev_cards_revealed: list[DevCard] = []
         self.board = board
 
         self.num_cards_to_remove_for_thief = 0
+        self.dev_card_in_action: None | DevCard = None
         self.exchanges: None | list[Exchange] = None
         self.exchange_asked: Exchange | None = None
         self.exchange_accepted = False
+        self.monopoly_resource: None | Resource = None
 
     def place_initial_colony(self, intersection: TileIntersection):
         intersection.content = Construction(kind=ConstructionKind.COLONY, player=self)
@@ -106,6 +109,18 @@ class Player:
     def exchange_asked_done(self):
         self.exchange_asked = None
         self.exchange_accepted = False
+
+    def free_card(self, resource: Resource):
+        self.resource_cards.add_one(resource)
+
+    def free_road(self, path: TilePath):
+        path.road_player = self
+
+    def monopoly(self, resource: Resource):
+        self.monopoly_resource = resource
+
+    def end_turn(self):
+        self.num_dev_cards_just_bought = 0
 
     def find_all_intersection_belonging_to_player(self) -> Generator[TileIntersection, None, None]:
         for inte in self.board.intersections:
@@ -178,6 +193,9 @@ class Player:
                 num += 1
                 if inter.content.kind == ConstructionKind.TOWN:
                     num += 1
+        for dev_card in self.dev_cards_revealed:
+            if dev_card == DevCard.VICTORY_POINT:
+                num += 1
         return num
 
     def num_knights(self):
@@ -320,6 +338,18 @@ class PlayerManager:
 
     @abstractmethod
     def get_resources(self) -> bool:
+        pass
+
+    @abstractmethod
+    def place_free_road(self) -> bool:
+        pass
+
+    @abstractmethod
+    def free_card(self) -> bool:
+        pass
+
+    @abstractmethod
+    def monopoly(self) -> bool:
         pass
 
 

@@ -30,6 +30,7 @@ WIDTH_EXCHANGE_BOX = 500
 HEIGHT_EXCHANGE_BOX = 230
 HEIGHT_BUTTONS_EXCHANGE_BOX = 40
 Y_CARDS_IN_EXCHANGE_BOX = 300
+X_MONOPOLY_IN_ACTIONS_BOX = 475
 
 
 def x_position_after_dice() -> int:
@@ -114,3 +115,8 @@ def position_resources_exchange_box() -> (int, int):
     x = xs_cards_exchange_box()[1]
     width, height = dim_bank_resource()
     return x - width // 2, y - height + MARGINS
+
+
+def position_bank_monopoly() -> (int, int):
+    _, h = dim_bank_resource()
+    return MARGINS + X_MONOPOLY_IN_ACTIONS_BOX, 2 * MARGINS + HEIGHT_TITLE + (HEIGHT_ACTIONS_BOX - h) // 2

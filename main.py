@@ -18,7 +18,7 @@ if __name__ == "__main__":
     ResourceManager.load()
 
     # game = Game(["Mathieu", "Quentin", "Juliette", "Sarah"])
-    game = Game(["Joueur", "Ordi 1", "Ordi 2"])
+    game = Game(["Joueur", "Ordi 1", "Ordi 2", "Ordi 3"])
 
     player_managers: dict[Player, PlayerManager] = {
         player: IaPlayer(player) for player in game.players

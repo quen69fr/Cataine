@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import random
+
+from dev_cards import DevCard
 from resource import (BOARD_LAYOUT_DICE_NUMBERS, BOARD_LAYOUT_RESOURCES,
                       BOARD_PORT_RESOURCES)
-
 from board import Board
 from color import COLORS_ORDER
 from construction import ConstructionKind
@@ -43,17 +44,18 @@ class Game:
                         self.game_sub_state = GamePlayingState.THROW_DICES
         else:
             if self.game_sub_state == GamePlayingState.THROW_DICES:
-                if player_managers[current_player].throw_dice():
-                    self.throw_dice()
-                    if sum(self.dices) == 7:
-                        for player in self.players:
-                            player.move_thief_match_num_cards()
-                        if sum(player.num_cards_to_remove_for_thief for player in self.players) == 0:
-                            self.game_sub_state = GamePlayingState.MOVE_THIEF
+                if not self._knight_before_playing(player_managers):
+                    if player_managers[current_player].throw_dice():
+                        self.throw_dice()
+                        if sum(self.dices) == 7:
+                            for player in self.players:
+                                player.move_thief_match_num_cards()
+                            if sum(player.num_cards_to_remove_for_thief for player in self.players) == 0:
+                                self.game_sub_state = GamePlayingState.MOVE_THIEF
+                            else:
+                                self.game_sub_state = GamePlayingState.REMOVE_CARDS_THIEF
                         else:
-                            self.game_sub_state = GamePlayingState.REMOVE_CARDS_THIEF
-                    else:
-                        self.game_sub_state = GamePlayingState.GET_RESOURCES
+                            self.game_sub_state = GamePlayingState.GET_RESOURCES
             elif self.game_sub_state == GamePlayingState.GET_RESOURCES:
                 if player_managers[current_player].get_resources():
                     self.get_resources()
@@ -75,6 +77,21 @@ class Game:
             else:  # self.game_sub_state == GamePlayingState.STEAL_CARD:
                 if player_managers[current_player].steal_card():
                     self.game_sub_state = GamePlayingState.NEXT_TURN
+
+    def _knight_before_playing(self, player_managers: dict[Player, PlayerManager]):
+        current_player = self.get_current_player()
+        if current_player.dev_card_in_action is not None:
+            if current_player.dev_card_in_action == DevCard.KNIGHT:
+                if player_managers[current_player].move_thief():
+                    if current_player.can_steal():
+                        current_player.dev_card_in_action = DevCard.KNIGHT_STEAL_CARD
+                    else:
+                        current_player.dev_card_in_action = None
+            else:  # current_player.dev_card_in_action == DevCard.KNIGHT_STEAL_CARD
+                if player_managers[current_player].steal_card():
+                    current_player.dev_card_in_action = None
+            return True
+        return False
 
     def _play_next_turn_state(self, player_managers: dict[Player, PlayerManager]):
         current_player = self.get_current_player()
@@ -107,9 +124,47 @@ class Game:
                 for player in self.get_non_current_players():
                     player.ask_for_exchange(exchange.inverse())
                 return
+
+        # A dev card has been revealed ?
+        if current_player.dev_card_in_action is not None:
+            if current_player.dev_card_in_action == DevCard.KNIGHT:
+                if player_managers[current_player].move_thief():
+                    if current_player.can_steal():
+                        current_player.dev_card_in_action = DevCard.KNIGHT_STEAL_CARD
+                    else:
+                        current_player.dev_card_in_action = None
+            elif current_player.dev_card_in_action == DevCard.KNIGHT_STEAL_CARD:
+                if player_managers[current_player].steal_card():
+                    current_player.dev_card_in_action = None
+            elif current_player.dev_card_in_action == DevCard.FREE_CARDS:
+                if player_managers[current_player].free_card():
+                    current_player.dev_card_in_action = DevCard.FREE_CARDS_ONE_CARD_LASTING
+            elif current_player.dev_card_in_action == DevCard.FREE_CARDS_ONE_CARD_LASTING:
+                if player_managers[current_player].free_card():
+                    current_player.dev_card_in_action = None
+            elif current_player.dev_card_in_action == DevCard.FREE_ROADS:
+                if player_managers[current_player].place_free_road():
+                    current_player.dev_card_in_action = DevCard.FREE_ROADS_ONE_ROAD_LASTING
+            elif current_player.dev_card_in_action == DevCard.FREE_ROADS_ONE_ROAD_LASTING:
+                if player_managers[current_player].place_free_road():
+                    current_player.dev_card_in_action = None
+            elif current_player.dev_card_in_action == DevCard.MONOPOLY:
+                if player_managers[current_player].monopoly():
+                    res = current_player.monopoly_resource
+                    assert res is not None
+                    for player in self.get_non_current_players():
+                        current_player.resource_cards.add_one(res, player.resource_cards[res])
+                        player.resource_cards[res] = 0
+                    current_player.monopoly_resource = None
+                    current_player.dev_card_in_action = None
+            else:
+                current_player.dev_card_in_action = None
+            return
+
         # Then the current player can play
         if player_managers[current_player].play():
             current_player.exchanges = None
+            current_player.end_turn()
             self.game_sub_state = GamePlayingState.THROW_DICES
             self.turn_number += 1
 
