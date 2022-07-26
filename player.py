@@ -42,6 +42,8 @@ class Player:
         self.exchange_asked: Exchange | None = None
         self.exchange_accepted = False
         self.monopoly_resource: None | Resource = None
+        self.longest_road: bool = False
+        self.largest_army: bool = False
 
     def place_initial_colony(self, intersection: TileIntersection):
         intersection.content = Construction(kind=ConstructionKind.COLONY, player=self)
@@ -186,8 +188,11 @@ class Player:
                 yield path.port.resource
 
     def num_victory_points(self):
-        # TODO : Longest road and knights
         num = 0
+        if self.longest_road:
+            num += 2
+        if self.largest_army:
+            num += 2
         for inter in self.board.intersections:
             if inter.content is not None and inter.content.player == self:
                 num += 1
@@ -281,6 +286,31 @@ class Player:
             if possible:
                 return True
         return False
+
+    def get_length_longest_road(self):
+        def get_all_possible_length_from_intersection(intersection: TileIntersection, remaining_paths: set[TilePath]):
+            if len(remaining_paths) == 0:
+                return 0
+            better_length = 0
+            for path in intersection.neighbour_paths:
+                if path in remaining_paths:
+                    next_intersection = path.intersections[1 if path.intersections[0] == intersection else 0]
+                    length = 1
+                    if next_intersection.content is None or next_intersection.content.player == self:
+                        remaining_paths.remove(path)
+                        length += get_all_possible_length_from_intersection(next_intersection, remaining_paths)
+                        remaining_paths.add(path)
+                    better_length = max(length, better_length)
+            return better_length
+
+        paths_set = set(self.find_all_path_belonging_to_player())
+        if len(paths_set) == 0:
+            return 0
+        intersection_set = set()
+        for path in paths_set:
+            for inter in path.intersections:
+                intersection_set.add(inter)
+        return max(get_all_possible_length_from_intersection(inter, paths_set) for inter in intersection_set)
 
     def __repr__(self):
         return f"<Player {self.color.name}>"
