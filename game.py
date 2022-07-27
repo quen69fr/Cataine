@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import random
 
-from constants import LENGTH_MIN_LONGEST_ROAD, SIZE_MIN_LARGEST_ARMY
+from logs import log
+from constants import LENGTH_MIN_LONGEST_ROAD, SIZE_MIN_LARGEST_ARMY, NUM_VICTORY_POINTS_FOR_VICTORY
 from dev_cards import DevCard
-from resource import (BOARD_LAYOUT_DICE_NUMBERS, BOARD_LAYOUT_RESOURCES,
-                      BOARD_PORT_RESOURCES)
+from resource import BOARD_LAYOUT_DICE_NUMBERS, BOARD_LAYOUT_RESOURCES, BOARD_PORT_RESOURCES
 from board import Board
 from color import COLORS_ORDER
 from construction import ConstructionKind
@@ -170,7 +170,7 @@ class Game:
             self.turn_number += 1
 
     def throw_dice(self):
-        print("\nPlayer turn:", self.get_current_player())
+        log(f"\nPlayer turn: {self.get_current_player()}")
         self.dices = (random.randint(1, 6), random.randint(1, 6))
 
     def get_resources(self):
@@ -200,3 +200,9 @@ class Game:
     def get_players_except_one(self, player: Player) -> list[Player]:
         index = self.players.index(player)
         return self.players[:index] + self.players[index + 1:]
+
+    def end_game(self):
+        for player in self.players:
+            if player.num_victory_points() >= NUM_VICTORY_POINTS_FOR_VICTORY:
+                return True
+        return False

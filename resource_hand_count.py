@@ -86,3 +86,24 @@ class ResourceHandCount(dict):
 
     def __iter__(self):
         return self.items().__iter__()
+
+
+def get_all_possible_set_of_resources(n) -> Generator[ResourceHandCount]:
+    if n == 1:
+        for res in ORDER_RESOURCES:
+            yield ResourceHandCount({res: 1})
+        return
+    n += 1
+    for a in range(n):
+        for b in range(n - a):
+            for c in range(n - a - b):
+                for d in range(n - a - b - c):
+                    e = n - a - b - c - d - 1
+                    # assert e >= 0
+                    yield ResourceHandCount({
+                        Resource.CLAY: a,
+                        Resource.WOOD: b,
+                        Resource.WOOL: c,
+                        Resource.HAY: d,
+                        Resource.ROCK: e,
+                    })

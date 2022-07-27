@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from resource_hand_count import ResourceHandCount
 from typing import TYPE_CHECKING
 
+from logs import log
 if TYPE_CHECKING:
     from player import Player
 
@@ -22,8 +23,8 @@ class Exchange:
         return player.has_resources(self.lost)
 
     def apply(self, player: 'Player', other_player: 'player | BANK_PLAYER_FOR_EXCHANGE'):
-        print(f"Exchange between {player} and "
-              f"{'the bank' if other_player == BANK_PLAYER_FOR_EXCHANGE else str(other_player)}:", self)
+        log(f"Exchange between {player} and "
+            f"{'the bank' if other_player == BANK_PLAYER_FOR_EXCHANGE else str(other_player)}: {self}")
         self.apply_one(player)
         if not other_player == BANK_PLAYER_FOR_EXCHANGE:
             self.inverse().apply_one(other_player)

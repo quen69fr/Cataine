@@ -22,3 +22,11 @@ NUM_DEV_CARDS = {
     DevCard.FREE_CARDS: 2,
     DevCard.VICTORY_POINT: 5
 }
+
+ORDER_DEV_CARD = [
+    DevCard.KNIGHT,
+    DevCard.MONOPOLY,
+    DevCard.FREE_ROADS,
+    DevCard.FREE_CARDS,
+    DevCard.VICTORY_POINT
+]

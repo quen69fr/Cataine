@@ -7,8 +7,8 @@ import pygame
 
 from constants import NUM_CARD_MAX_THIEF, SIZE_MIN_LARGEST_ARMY, LENGTH_MIN_LONGEST_ROAD
 from resource import Resource
-from resource_hand_count import ResourceHandCount
-from dev_cards import DevCard
+from resource_hand_count import ResourceHandCount, get_all_possible_set_of_resources
+from dev_cards import DevCard, ORDER_DEV_CARD
 from color import Color
 from construction import Construction, ConstructionKind
 from probability import get_probability_to_roll
@@ -17,6 +17,7 @@ from tile import Tile
 from tile_intersection import TileIntersection
 from tile_path import TilePath
 from exchange import Exchange
+from actions import Action, ActionBuildColony, ActionBuildRoad, ActionBuildTown, ActionBuyDevCard, ActionRevealDevCard
 
 if TYPE_CHECKING:
     from board import Board
@@ -214,7 +215,8 @@ class Player:
                     expect * (1 if inter.content.kind == ConstructionKind.COLONY else 2)
         return prod
 
-    def get_resource_production_in_number_of_turns_with_systematic_exchange(self, with_thief: bool = False) -> dict[Resource, float]:
+    def get_resource_production_in_number_of_turns_with_systematic_exchange(self, with_thief: bool = False) \
+            -> dict[Resource, float]:
         prod_turns = {}
         prod = self.get_resource_production_expectation_with_thief() if with_thief else self.production_expectation
         min_number_of_turns_with_exchange = 4 / max(prod.values())
@@ -232,6 +234,34 @@ class Player:
                     path.intersections[0].content is not None and path.intersections[0].content.player == self or
                     path.intersections[1].content is not None and path.intersections[1].content.player == self):
                 yield path.port.resource
+
+    def get_all_possible_exchanges_with_the_bank(self) -> Generator[Exchange]:
+        ports = list(self.get_ports())
+        n_min = 3 if Resource.P_3_FOR_1 in ports else 4
+        hand_abstract_exchange = ResourceHandCount()
+        hand_abstract_multiplication = ResourceHandCount()
+        for res, num in self.resource_cards.items():
+            if res in ports:
+                n = 2
+            else:
+                n = n_min
+            hand_abstract_exchange[res] = num // n
+            hand_abstract_multiplication[res] = n
+
+        for i in range(1, 1 + hand_abstract_exchange.num_resources()):
+            for gain in get_all_possible_set_of_resources(i):
+                for lost in hand_abstract_exchange.subsets_of_size_k(i):
+                    intelligent = True
+                    for res, num in lost.items():
+                        if num == 0:
+                            continue
+                        else:
+                            if not gain[res] == 0:
+                                intelligent = False
+                                break
+                            lost[res] *= hand_abstract_multiplication[res]
+                    if intelligent:
+                        yield Exchange(gain, lost)
 
     def num_victory_points(self):
         num = 0
@@ -361,9 +391,37 @@ class Player:
             self.length_longest_road = length
             self.board.update_longest_road(self)
 
+    def get_all_possible_one_shot_actions(self, include_dev_card: bool = True) -> Generator[Action]:
+        if self.has_resources(ActionBuildColony.cost):
+            for inter in self.board.intersections:
+                action = ActionBuildColony(inter, self)
+                if action.available():
+                    yield action
+
+        if self.has_resources(ActionBuildTown.cost):
+            for inter in self.board.intersections:
+                action = ActionBuildTown(inter, self)
+                if action.available():
+                    yield action
+
+        if self.has_resources(ActionBuildRoad.cost):
+            for path in self.board.paths:
+                action = ActionBuildRoad(path, self)
+                if action.available():
+                    yield action
+
+        if include_dev_card:
+            if self.has_resources(ActionBuyDevCard.cost):
+                yield ActionBuyDevCard(self)
+
+            for dev in ORDER_DEV_CARD:
+                action = ActionRevealDevCard(dev, self)
+                if action.available():
+                    yield action
+
     def __repr__(self):
         return f"<Player {self.color.name}>"
-    
+
     def __str__(self):
         return repr(self)
 

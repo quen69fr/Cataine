@@ -4,6 +4,8 @@ import pygame
 
 from resource_manager import ResourceManager
 from game import Game
+from strategy_with_objectives import StrategyWithObjectives
+from strategy_neural_network import StrategyNeuralNetworkBrutal
 from render_game import RenderGame
 from player import Player, PlayerManager
 from ia_player import IaPlayer
@@ -21,9 +23,11 @@ if __name__ == "__main__":
     game = Game(["Joueur", "Ordi 1", "Ordi 2", "Ordi 3"])
 
     player_managers: dict[Player, PlayerManager] = {
-        player: IaPlayer(player) for player in game.players
+        player: IaPlayer(player, StrategyNeuralNetworkBrutal(game.board, player)) for player in game.players
     }
-    player_managers[game.players[0]] = ManualPlayer(game.players[0], auto_refuse_ratio_max_exchange=0.5)
+    # player_managers[game.players[0]] = ManualPlayer(game.players[0], auto_refuse_ratio_max_exchange=0.5)
+
+    # Strategy.exchange_with_others = True
 
     ia_play_with_space = False
     # ia_play_with_space = True

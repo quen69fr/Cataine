@@ -4,13 +4,14 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from logs import log
 from resource import Resource
 from dev_cards import DevCard
 from construction import Construction, ConstructionKind, NUM_CONSTRUCTION_MAX
 from resource_hand_count import ResourceHandCount
-from player import Player
 
 if TYPE_CHECKING:
+    from player import Player
     from tile_path import TilePath
     from tile_intersection import TileIntersection
 
@@ -37,6 +38,7 @@ class ActionBuildRoad(Action):
     def apply(self):
         if self.path.road_player is not None:
             raise ValueError("building road on a tile path that already has a road")
+        log(f"Action: {self.player} build a road.")
         self.player.add_road(self.path)
         self.player.consume_resources(self.cost)
 
@@ -74,6 +76,7 @@ class ActionBuildColony(Action):
     def apply(self):
         if self.intersection.content is not None:
             raise ValueError("building colony on a tile intersection that already has a colony")
+        log(f"Action: {self.player} build a colony.")
         self.player.add_colony(self.intersection)
         self.player.consume_resources(self.cost)
 
@@ -100,6 +103,7 @@ class ActionBuildTown(Action):
     def apply(self):
         if not self.intersection.content == Construction(kind=ConstructionKind.COLONY, player=self.player):
             raise ValueError("the town must be built on one of our colony")
+        log(f"Action: {self.player} build a town.")
         self.player.add_town(self.intersection)
         self.player.consume_resources(self.cost)
 
@@ -115,6 +119,7 @@ class ActionBuyDevCard(Action):
     cost = ResourceHandCount({Resource.ROCK: 1, Resource.HAY: 1, Resource.WOOL: 1})
 
     def apply(self):
+        log(f"Action: {self.player} buy a dev card.")
         assert self.player.board.dev_cards
         self.player.dev_cards.append(self.player.board.dev_cards.pop())
         self.player.num_dev_cards_just_bought += 1
@@ -131,6 +136,7 @@ class ActionRevealDevCard(Action):
     cost = ResourceHandCount({Resource.ROCK: 1, Resource.HAY: 1, Resource.WOOL: 1})
 
     def apply(self):
+        log(f"Action: {self.player} reveal the dev card {self.dev_card}.")
         self.player.reveal_dev_card(self.dev_card)
 
     def available(self, before_play: bool = False):

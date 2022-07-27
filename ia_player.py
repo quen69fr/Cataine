@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from strategy import StrategyExplorer
+from strategy import Strategy
 from player import Player, PlayerManager
 
 
 class IaPlayer(PlayerManager):
     player: Player
-    strategy: StrategyExplorer
+    strategy: Strategy
 
-    def __init__(self, player: Player):
+    def __init__(self, player: Player, strategy: Strategy):
         PlayerManager.__init__(self, player)
-        self.strategy = StrategyExplorer(self.player.board, self.player)
+        self.strategy = strategy
 
         self.play_next_step = True
 
