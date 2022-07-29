@@ -4,7 +4,7 @@ import json
 import numpy as np
 from math import tanh
 from typing import TYPE_CHECKING
-from random import shuffle
+from random import shuffle, random
 
 from strategy import Strategy
 from board import Board
@@ -39,6 +39,7 @@ class StrategyNeuralNetworkBrutal(Strategy):
     Without dev cards (for now !)
     Without exchanges between players
     """
+
     def __init__(self, board: Board, player: Player):
         Strategy.__init__(self, board, player)
 
@@ -214,16 +215,21 @@ class StrategyNeuralNetworkBrutal(Strategy):
 
     # -------------------------------------------------------------------------
 
+    def from_list_network(self, params: list):
+        self.weights = [np.array(weight) for weight in params[0]]
+        self.biases = [np.array(bias) for bias in params[1]]
+
+    def to_list_network(self) -> list:
+        return [[weight.tolist() for weight in self.weights], [bias.tolist() for bias in self.biases]]
+
     def save_network(self, path: str):
         with open(path, "w") as file:
-            json.dump([[weight.tolist() for weight in self.weights],
-                       [bias.tolist() for bias in self.biases]], file)
+            json.dump(self.to_list_network(), file)
 
     def load_network(self, path: str):
         with open(path, "r") as file:
             params = json.load(file)
-        self.weights = [numpy.array(weight) for weight in params[0]]
-        self.biases = [numpy.array(bias) for bias in params[1]]
+        self.from_list_network(params)
 
     def _feedforward(self, layer: np.array):
         for i, weight in enumerate(self.weights):
@@ -248,9 +254,9 @@ class StrategyNeuralNetworkBrutal(Strategy):
 
         for idx in range(2, len(self.layers)):
             delta_neurons = v_squeeze_function_derivative(neurons[-idx]) * \
-                            np.dot(self.weights[-idx+1].transpose(), delta_neurons)
+                            np.dot(self.weights[-idx + 1].transpose(), delta_neurons)
             delta_biases.insert(0, delta_neurons)
-            delta_weights.insert(0, np.dot(delta_neurons, neurons_squeezed[-idx-1].transpose()))
+            delta_weights.insert(0, np.dot(delta_neurons, neurons_squeezed[-idx - 1].transpose()))
 
         return delta_weights, delta_biases
 
@@ -293,3 +299,14 @@ class StrategyNeuralNetworkBrutal(Strategy):
         for layer, answer in training_data:
             mark += (float(self._feedforward(layer)) - answer) ** 2
         return mark ** 0.5 / len(training_data)
+
+    def inherit(self, parents: list[StrategyNeuralNetworkBrutal],
+                proba_mutation: float = 0., mutation_scale: float = 0.):
+        self.weights = [np.array([[float(sum(parent.weights[n][j][i] for parent in parents) / len(parents)) +
+                                   ((2 * random() - 1) * mutation_scale if random() < proba_mutation else 0)
+                                   for i in range(n1)] for j in range(n2)])
+                        for n, (n1, n2) in enumerate(zip(self.layers[:-1], self.layers[1:]))]
+        self.biases = [np.array([[float(sum(parent.biases[i][j] for parent in parents) / len(parents)) +
+                                  ((2 * random() - 1) * mutation_scale if random() < proba_mutation else 0)]
+                                 for j in range(n)])
+                       for i, n in enumerate(self.layers[1:])]

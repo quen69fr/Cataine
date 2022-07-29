@@ -263,12 +263,18 @@ class Player:
                     if intelligent:
                         yield Exchange(gain, lost)
 
-    def num_victory_points(self):
+    def num_bonus_victory_points(self) -> int:
         num = 0
         if self.length_longest_road >= LENGTH_MIN_LONGEST_ROAD and self.board.players_longest_road[0] == self:
             num += 2
         if self.board.player_largest_army == self:
             num += 2
+        return num
+
+    def num_victory_points(self, without_longest_road_and_largest_army: bool = False) -> int:
+        num = 0
+        if not without_longest_road_and_largest_army:
+            num += self.num_bonus_victory_points()
         for inter in self.board.intersections:
             if inter.content is not None and inter.content.player == self:
                 num += 1
