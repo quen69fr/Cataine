@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from constants import NUM_VICTORY_POINTS_FOR_VICTORY
 from game import Game
 from strategy import Strategy
-from strategy_neural_network import StrategyNeuralNetworkBrutal
+from strategy_neural_network import StrategyNeuralNetwork
 from strategy_with_objectives import StrategyWithObjectives
 from player import Player
 from ia_player import IaPlayer
@@ -19,8 +19,8 @@ from ia_player import IaPlayer
 def generate_infinite_training_data() -> Generator[tuple[np.array, float]]:
     while True:
         game = Game(["Network 1", "Network 2", "ObjStrategy 1", "ObjStrategy 2"])
-        strategies_network: dict[Player, StrategyNeuralNetworkBrutal] = {
-            player: StrategyNeuralNetworkBrutal(game.board, player) for player in game.players
+        strategies_network: dict[Player, StrategyNeuralNetwork] = {
+            player: StrategyNeuralNetwork(game.board, player) for player in game.players
         }
         strategies: list[Strategy] = [
             strategies_network[game.players[0]],
@@ -59,10 +59,10 @@ def load_training_data(path: str) -> list[tuple[np.array, float]]:
 class Training:
     game_temp = Game(["A", "B", "C", "D"])
 
-    def __init__(self, strategies_networks: list[StrategyNeuralNetworkBrutal] | int | str = 60):
-        self.strategies_networks: list[StrategyNeuralNetworkBrutal]
+    def __init__(self, strategies_networks: list[StrategyNeuralNetwork] | int | str = 60):
+        self.strategies_networks: list[StrategyNeuralNetwork]
         if isinstance(strategies_networks, int):
-            self.strategies_networks = [StrategyNeuralNetworkBrutal(self.game_temp.board, self.game_temp.players[0])
+            self.strategies_networks = [StrategyNeuralNetwork(self.game_temp.board, self.game_temp.players[0])
                                         for _ in range(strategies_networks)]
         elif isinstance(strategies_networks, str):
             self.strategies_networks = self.load_strategies(strategies_networks)
@@ -71,12 +71,12 @@ class Training:
 
         assert len(self.strategies_networks) % 4 == 0
 
-    def load_strategies(self, path: str) -> list[StrategyNeuralNetworkBrutal]:
+    def load_strategies(self, path: str) -> list[StrategyNeuralNetwork]:
         with open(path, "r") as file:
             params_list = json.load(file)
         strategies_networks = []
         for i in range(len(params_list)):
-            network = StrategyNeuralNetworkBrutal(self.game_temp.board, self.game_temp.players[0])
+            network = StrategyNeuralNetwork(self.game_temp.board, self.game_temp.players[0])
             network.from_list_network(params_list[i])
             strategies_networks.append(network)
         return strategies_networks
@@ -138,7 +138,7 @@ class Training:
         print(f"            - Standard deviation: {marks.std()}")
         return marks
 
-    def compose_new_generation(self, weights: np.array) -> list[StrategyNeuralNetworkBrutal]:
+    def compose_new_generation(self, weights: np.array) -> list[StrategyNeuralNetwork]:
         new_generation = []
         for num_descendants, proba, mutation in [
             (20, 0.02, 0.0001),
@@ -147,7 +147,7 @@ class Training:
         ]:
             for _ in range(num_descendants):
                 num_parents = choices([1, 2, 3], [0.9, 0.08, 0.02], k=1)[0]
-                network = StrategyNeuralNetworkBrutal(self.game_temp.board, self.game_temp.players[0])
+                network = StrategyNeuralNetwork(self.game_temp.board, self.game_temp.players[0])
                 parents = choices(self.strategies_networks, weights, k=num_parents)
                 network.inherit(parents, proba, mutation)
                 new_generation.append(network)

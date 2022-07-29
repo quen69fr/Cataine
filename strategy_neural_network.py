@@ -33,7 +33,7 @@ def squeeze_function_derivative(x: float):
 v_squeeze_function_derivative = np.vectorize(squeeze_function_derivative)
 
 
-class StrategyNeuralNetworkBrutal(Strategy):
+class StrategyNeuralNetwork(Strategy):
     """
     Trained for a specific initial board
     Without dev cards (for now !)
@@ -300,7 +300,7 @@ class StrategyNeuralNetworkBrutal(Strategy):
             mark += (float(self._feedforward(layer)) - answer) ** 2
         return mark ** 0.5 / len(training_data)
 
-    def inherit(self, parents: list[StrategyNeuralNetworkBrutal],
+    def inherit(self, parents: list[StrategyNeuralNetwork],
                 proba_mutation: float = 0., mutation_scale: float = 0.):
         self.weights = [np.array([[float(sum(parent.weights[n][j][i] for parent in parents) / len(parents)) +
                                    ((2 * random() - 1) * mutation_scale if random() < proba_mutation else 0)

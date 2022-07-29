@@ -6,7 +6,7 @@ from resource_manager import ResourceManager
 from game import Game
 from strategy import Strategy
 from strategy_with_objectives import StrategyWithObjectives
-from strategy_neural_network import StrategyNeuralNetworkBrutal
+from strategy_neural_network import StrategyNeuralNetwork
 from render_game import RenderGame
 from player import Player, PlayerManager
 from ia_player import IaPlayer
@@ -38,7 +38,7 @@ if __name__ == "__main__":
         game = Game(["Network 1", "Network 2", "Network 3", "Network 4"])
 
         player_managers: dict[Player, PlayerManager] = {
-            player: IaPlayer(player, StrategyNeuralNetworkBrutal(game.board, player)) for player in game.players
+            player: IaPlayer(player, StrategyNeuralNetwork(game.board, player)) for player in game.players
         }
 
         with open("neural_network_training_data/old_60_networks_training/generations_long_games_2/"
@@ -57,7 +57,7 @@ if __name__ == "__main__":
 
         for player_manager, network in zip(player_managers.values(), best_player_networks):
             if isinstance(player_manager, IaPlayer) and \
-                    isinstance(player_manager.strategy, StrategyNeuralNetworkBrutal):
+                    isinstance(player_manager.strategy, StrategyNeuralNetwork):
                 player_manager.strategy.from_list_network(network)
 
     render_game = RenderGame(game, game.players[0], player_managers[game.players[0]])
