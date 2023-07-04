@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from abc import abstractmethod
 from typing import TYPE_CHECKING
 
+from strategy import Strategy
 from board import Board
 from tile import Tile
 from tile_intersection import TileIntersection
@@ -14,42 +14,28 @@ if TYPE_CHECKING:
     from player import Player
 
 
-class Strategy:
-    exchange_with_others: bool = False
-
+class StrategyWithObjectives(Strategy):
     def __init__(self, board: Board, player: Player):
-        self.board = board
-        self.player = player
+        Strategy.__init__(self, board, player)
 
-    def change_of_player_and_board(self, board: Board, player: Player):
-        self.board = board
-        self.player = player
-
-    @abstractmethod
     def play(self) -> bool:
         # Can apply any Action
         pass
 
-    @abstractmethod
     def place_initial_colony(self) -> TileIntersection:
         pass
 
-    @abstractmethod
     def place_road_around_initial_colony(self) -> TilePath:
         pass
 
-    @abstractmethod
     def remove_cards_thief(self, num_cards_kept: int) -> ResourceHandCount:
         pass
 
-    @abstractmethod
     def move_thief(self) -> Tile:
         pass
 
-    @abstractmethod
     def steal_card(self) -> Player:
         pass
 
-    @abstractmethod
     def accept_exchange(self, exchange: Exchange) -> bool:
         pass

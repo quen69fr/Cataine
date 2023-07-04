@@ -184,6 +184,8 @@ class Player:
     def end_turn(self):
         self.num_dev_cards_just_bought = 0
 
+    # ------------------------------------------------------------------------------------------------
+
     def find_all_intersection_belonging_to_player(self) -> Generator[TileIntersection, None, None]:
         for inte in self.board.intersections:
             if inte.content is not None and inte.content.player == self:
@@ -430,6 +432,8 @@ class Player:
 
     def __str__(self):
         return repr(self)
+
+    # ------------------------------------------------------------------------------------------------
 
     def render_draft(self, screen: pygame.Surface, x0: int, y0: int, my_turn: bool):
         if my_turn:
