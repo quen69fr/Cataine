@@ -63,7 +63,7 @@ class Player:
         # Check if we cut the longest road
         player = None
         for path in intersection.neighbour_paths:
-            if path.road_player is None:
+            if path.road_player is None or path.road_player == self:
                 continue
             if player is None:
                 player = path.road_player
