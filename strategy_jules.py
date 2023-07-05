@@ -13,6 +13,8 @@ from resource_hand_count import ResourceHandCount
 if TYPE_CHECKING:
     from player import Player
 
+# Test
+
 
 class StrategyWithObjectives(Strategy):
     def __init__(self, board: Board, player: Player):
