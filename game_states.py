@@ -1,6 +1,8 @@
 
 from enum import Enum
 
+# TODO : Victory
+
 
 class GameState(Enum):
     PLACING_COLONIES = 1

@@ -30,6 +30,10 @@ class Objective:
         pass
 
 
+# TODO : Add objectives for the longest road and the largest army
+#  And change the mark of the objective leading to victory
+
+
 class ObjectiveBuildColony(Objective):
     def do(self, particular_starts: list[TileIntersection] = None):
         # is there remaining colonies to build
