@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from player import Player
 
 
-class StrategyWithObjectives(Strategy):
+class StrategyTim(Strategy):
     def __init__(self, board: Board, player: Player):
         Strategy.__init__(self, board, player)
 
