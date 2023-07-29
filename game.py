@@ -3,7 +3,7 @@ from __future__ import annotations
 import random
 
 from logs import log
-from constants import LENGTH_MIN_LONGEST_ROAD, SIZE_MIN_LARGEST_ARMY, NUM_VICTORY_POINTS_FOR_VICTORY
+from constants import NUM_VICTORY_POINTS_FOR_VICTORY
 from dev_cards import DevCard
 from resource import BOARD_LAYOUT_DICE_NUMBERS, BOARD_LAYOUT_RESOURCES, BOARD_PORT_RESOURCES
 from board import Board
@@ -31,6 +31,8 @@ class Game:
         self.game_sub_state: GamePlayingState | GamePlacingColoniesState = GamePlacingColoniesState.PLACING_COLONY
 
     def play(self, player_managers: dict[Player, PlayerManager]):
+        if self.game_state == GameState.END:
+            return
         current_player = self.get_current_player()
         if self.game_state == GameState.PLACING_COLONIES:
             if self.game_sub_state == GamePlacingColoniesState.PLACING_COLONY:
@@ -166,8 +168,11 @@ class Game:
         if player_managers[current_player].play():
             current_player.exchanges = None
             current_player.end_turn()
-            self.game_sub_state = GamePlayingState.THROW_DICES
-            self.turn_number += 1
+            if current_player.num_victory_points() >= NUM_VICTORY_POINTS_FOR_VICTORY:
+                self.game_state = GameState.END
+            else:
+                self.game_sub_state = GamePlayingState.THROW_DICES
+                self.turn_number += 1
 
     def throw_dice(self):
         log(f"\nPlayer turn: {self.get_current_player()}")
@@ -200,9 +205,3 @@ class Game:
     def get_players_except_one(self, player: Player) -> list[Player]:
         index = self.players.index(player)
         return self.players[:index] + self.players[index + 1:]
-
-    def end_game(self):
-        for player in self.players:
-            if player.num_victory_points() >= NUM_VICTORY_POINTS_FOR_VICTORY:
-                return True
-        return False

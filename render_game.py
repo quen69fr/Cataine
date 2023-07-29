@@ -195,7 +195,7 @@ class RenderGame:
                 text += " construire une colonie."
             else:  # self.game.game_sub_state == GamePlacingColoniesState.PLACING_ROAD:
                 text += " construire une route."
-        else:
+        elif self.game.game_state == GameState.PLAYING:
             if self.game.game_sub_state == GamePlayingState.THROW_DICES:
                 dices = (0, 0)
                 if my_turn:
@@ -269,12 +269,15 @@ class RenderGame:
                         text = "Jeter les cartes"
                 else:
                     text = "Les autres joueurs jetent des cartes."
-            else:
+            else:  # self.game.game_state == GameState.END
                 text = "Vous devez" if my_turn else f"{current_player.nickname} doit"
                 if self.game.game_sub_state == GamePlayingState.MOVE_THIEF:
                     text += " déplacer le voleur."
                 else:  # self.game.game_sub_state == GamePlayingState.STEAL_CARD:
                     text += " voler une carte."
+        else:
+            dices = None
+            text = ("Vous avez" if my_turn else f"{current_player.nickname} a") + " gagné !"
 
         if dices:
             m = (HEIGHT_ACTIONS_BOX - SIZE_DICE) // 2

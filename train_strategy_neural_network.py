@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 
 from constants import NUM_VICTORY_POINTS_FOR_VICTORY
 from game import Game
+from game_states import GameState
 from strategy import Strategy
 from strategy_neural_network import StrategyNeuralNetwork
 from strategy_with_objectives import StrategyWithObjectives
@@ -33,7 +34,7 @@ def generate_infinite_training_data() -> Generator[tuple[np.array, float]]:
             player: IaPlayer(player, strategy) for player, strategy in zip(game.players, strategies)
         }
 
-        while not game.end_game():
+        while not game.game_state == GameState.END:
             player = game.get_current_player()
             game.play(player_managers)
             yield ((strategies_network[player].get_game_state_to_vector(),
